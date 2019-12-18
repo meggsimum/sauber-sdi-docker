@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+BASH_ENV=/container.env
+30 * * * * /dl_sauber_ftp.sh > /proc/1/fd/1 2>/proc/1/fd/2
+#
