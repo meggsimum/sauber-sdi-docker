@@ -1,15 +1,15 @@
 # To start the container, the following environment vars must be set:
-# PGRST_USER_FILE / PGRST_USER: Mutual exclusive parameters to define a user name 
+# PGRST_USER_FILE / PGRST_USER: Mutual exclusive parameters to define a user name
 #    - either from docker secret file or directly.
-# PGRST_PASSWORD_FILE / PGRST_PASSWORD: Mutual exclusive parameters to define a password - 
+# PGRST_PASSWORD_FILE / PGRST_PASSWORD: Mutual exclusive parameters to define a password -
 #    - either from docker secret file or directly.
-# PGRST_JWT_SECRET_FILE / PGRST_JWT_SECRET: Mutual exclusive parameters to define a jwt secret - 
+# PGRST_JWT_SECRET_FILE / PGRST_JWT_SECRET: Mutual exclusive parameters to define a jwt secret -
 #    - either from docker secret file or directly.
 # PGRST_DB_SERVER: Server name to build the connection URI.
 # PGRST_DB_PORT: Server port to build the connection URI.
 # PGRST_DB_NAME: Database name to build the connection URI.
 # PGRST_DB_SCHEMA: The database schema to expose to REST clients
-# PGRST_DB_ANON_ROLE: The database role to use when executing commands on 
+# PGRST_DB_ANON_ROLE: The database role to use when executing commands on
 #   behalf of unauthenticated clients.
 # For more information see https://postgrest.org/en/v5.0/install.html#configuration.
 
@@ -49,4 +49,4 @@ COPY resources/bin/docker-entrypoint.sh /usr/local/bin/
 RUN chmod 775 /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-EXPOSE 3000   
+EXPOSE 3000
