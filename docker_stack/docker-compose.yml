@@ -1,0 +1,210 @@
+version: "3.7"
+
+networks:
+    network:
+        attachable: true
+
+volumes:
+    db_data:
+    lubw_data:
+    geoserver_data:
+    um_data:
+    um_logs:
+    um_licence:
+    um_users:
+
+secrets:
+    postgis_user:
+        file: ./secrets/postgis_user.txt
+        name: pg-user-v3
+    postgis_password:
+        file: ./secrets/postgis_password.txt
+        name: pg-passw-v2
+    postgrest_password:
+        file: ./secrets/pgrst_password.txt
+        name: pgrest_password_v2
+    postgrest_jwt_secret:
+        file: ./secrets/pgrst_jwt_secret.txt
+        name: pgrest_sauber_v1
+    lubw_user: 
+        file: ./secrets/lubw_user.txt
+        name: lubw_user_v1        
+    lubw_password: 
+        file: ./secrets/lubw_password.txt
+        name: lubw_password_v1
+    lubw_server: 
+        file: ./secrets/lubw_server.txt
+        name: lubw_server_v1
+    geoserver_user:
+        file: ./secrets/geoserver_user.txt
+        name: geoserver_user_v1
+    geoserver_password:
+        file: ./secrets/geoserver_password.txt
+        name: geoserver_password_v1
+    sauber_user_password:
+        file: ./secrets/sauber_user_password.txt
+        name: sauber_user_password_v1
+    sauber_manager_password:
+        file: ./secrets/sauber_manager_password.txt
+        name: sauber_manager_password_v1
+
+services:
+    db:
+        image: "sauber_postgis_alpine"
+        networks:
+            - network
+        volumes:
+            - db_data:/var/lib/postgresql/data  
+        secrets: 
+            - postgrest_jwt_secret
+            - postgrest_password
+            - sauber_manager_password
+            - sauber_user_password
+        environment:
+            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+            - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
+            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        ports:
+            - "5440:5432"
+
+    lubw_download:
+        image: "lubw_import:latest"
+        networks:
+            - network
+        volumes:
+            - lubw_data:/usr/src/ftp
+        secrets:
+            - sauber_manager_password
+            - lubw_server
+            - lubw_user
+            - lubw_password
+        environment:
+            - POSTGIS_HOSTNAME=db
+            - LUBW_DATABASE=lubw_messstellen
+            - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
+            - LUBW_USER_FILE=/run/secrets/lubw_user
+            - LUBW_SERVER_FILE=/run/secrets/lubw_server
+            - LUBW_PASSWORD_FILE=/run/secrets/lubw_password
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        depends_on:
+            - db              
+
+    geoserver:
+        image: "meggsimum/geoserver"
+        networks:
+            - network 
+        # secrets:
+        environment:
+            - USE_CORS=1
+        volumes:
+            - geoserver_data:/opt/geoserver_data
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        depends_on:
+            - db
+        ports:
+            - "8080:8080"
+
+
+    postgrest_lubw:
+        image: "postgrest:latest"
+        networks:
+            - network
+        secrets:
+            - postgrest_jwt_secret
+            - postgrest_password
+        environment:
+            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+            - PGRST_USER=authenticator
+            - PGRST_DB_POOL=5
+            - PGRST_MAX_ROWS=100 
+            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+            - PGRST_DB_SERVER=db
+            - PGRST_DB_PORT=5432
+            - PGRST_DB_NAME=lubw_messstellen
+            - PGRST_DB_SCHEMA=daten
+            - PGRST_DB_ANON_ROLE=anon
+        deploy:
+            restart_policy:
+             condition: on-failure
+        depends_on:
+            - db
+        ports:
+            - "3001:3000"
+
+    postgrest_here:
+        image: "postgrest:latest"
+        networks:
+            - network
+        secrets:
+            - postgrest_jwt_secret
+            - postgrest_password
+        environment:
+            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+            - PGRST_USER=authenticator
+            - PGRST_DB_POOL=5
+            - PGRST_MAX_ROWS=100 
+            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+            - PGRST_DB_SERVER=db
+            - PGRST_DB_PORT=5432
+            - PGRST_DB_NAME=here
+            - PGRST_DB_SCHEMA=here_traffic
+            - PGRST_DB_ANON_ROLE=anon
+        deploy:
+            restart_policy:
+             condition: on-failure
+        depends_on:
+            - db
+        ports:
+            - "3002:3000"
+
+    um_server:
+        image: "store/softwareag/universalmessaging-server:10.5"
+        networks:
+            - network
+        # secrets:
+        # environment:
+        deploy:
+            restart_policy:
+             condition: on-failure
+        # depends_on:
+        # healthcheck:
+        volumes:
+            - um_data:/opt/softwareag/UniversalMessaging/server/umserver/data
+            - um_logs:/opt/softwareag/UniversalMessaging/server/umserver/logs
+            - um_licence:/opt/softwareag/UniversalMessaging/server/umserver/licence
+            - um_users:/opt/softwareag/common/conf
+        ports:
+            - "9876:9000"
+
+    # um_subscriber:
+    #     image: "java-subscribe-download:latest"
+    #     networks:
+    #         - network
+    #     # secrets:
+    #     volumes:
+    #         - /var/run/docker.sock:/var/run/docker.sock
+    #     environment:
+    #         - umserver=um_server:9000
+    #     deploy:
+    #         restart_policy:
+    #             condition: on-failure
+    #     depends_on:
+    #         - um_server
+    #     tty:
+    #         true  #Keep Container alive, else completes and shuts down
