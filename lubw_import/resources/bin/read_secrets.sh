@@ -25,9 +25,9 @@ file_env() {
 
 secrets=(
 	SAUBER_MANAGER_PASSWORD
-    FTP_USER
-    FTP_PASSWORD
-    FTP_SERVER
+    LUBW_USER
+    LUBW_PASSWORD
+    LUBW_SERVER
 )
 
 for e in "${secrets[@]}"; do
