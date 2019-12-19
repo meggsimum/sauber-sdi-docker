@@ -35,12 +35,12 @@ secrets:
     lubw_server:
         file: ./secrets/lubw_server.txt
         name: lubw_server_v1
-    geoserver_user:
-        file: ./secrets/geoserver_user.txt
-        name: geoserver_user_v1
-    geoserver_password:
-        file: ./secrets/geoserver_password.txt
-        name: geoserver_password_v1
+    # geoserver_user:
+    #     file: ./secrets/geoserver_user.txt
+    #     name: geoserver_user_v1
+    # geoserver_password:
+    #     file: ./secrets/geoserver_password.txt
+    #     name: geoserver_password_v1
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
         name: sauber_user_password_v1
