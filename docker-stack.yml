@@ -49,6 +49,14 @@ secrets:
         name: sauber_manager_password_v1
 
 services:
+
+    proxy-webserver:
+      image: nginx:stable
+      ports:
+        - 80:80
+      volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
     db:
         image: "sauber_postgis_alpine"
         networks:
