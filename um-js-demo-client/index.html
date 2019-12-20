@@ -1,0 +1,92 @@
+<html>
+
+<head>
+
+  <style media="screen">
+    body {
+      font-family: Arial, sans-serif;
+    }
+  </style>
+
+  <script language="JavaScript" src="libs/um-js/nirvana.js"></script>
+
+  <script>
+
+    var session = null;
+    var channel = null;
+
+    window.onload = isLoaded;
+
+    function isLoaded() {
+
+      session = Nirvana.createSession({
+          realms            : [ "http://localhost:9876" ],
+                              // this can be an array of realms
+          debugLevel        : 4, // 1-9 (1 = noisy, 8 = severe, 9 = default = off)
+          sessionTimeoutMs  : 10000,
+          enableDataStreams : false,
+          drivers           : [ // an array of transport drivers in preferred order:
+            Nirvana.Driver.WEBSOCKET,
+            Nirvana.Driver.XHR_STREAMING_CORS,
+            Nirvana.Driver.XDR_STREAMING,
+            Nirvana.Driver.JSONP_LONGPOLL,
+            Nirvana.Driver.XHR_LONGPOLL_CORS
+          ]
+        });
+
+        function sessionStarted(s) {
+            console.log("Session started with ID " + s.getSessionID());
+
+            document.querySelector('#connected').innerHTML = 'Connected (Session ' + s.getSessionID() + ')'
+        }
+
+        session.on(Nirvana.Observe.START, sessionStarted);
+
+        session.start();
+
+        channel = session.getChannel("HeartbeatChannel");
+
+        // Assign a handler function for Universal Messaging Events received on the Channel,
+        // then subscribe:
+        function myEventHandler(event) {
+            var dictionary = event.getDictionary();
+            document.querySelector('#outputTextarea').value += dictionary.get("timestamp") + ' | ' + dictionary.get("category") + ' | ' + dictionary.get("source") + '\n'
+        }
+
+        channel.on(Nirvana.Observe.DATA, myEventHandler);
+
+        channel.subscribe();
+    }
+
+    function publishMessage() {
+      var evt = Nirvana.createEvent();
+      var evtDict = evt.getDictionary();
+
+      evtDict.putString("timestamp", new Date().getTime());
+      evtDict.putString("category", "realtime");
+      evtDict.putString("source", "hhi");
+      channel.publish(evt);
+    }
+
+  </script>
+  <title>Universal Messaging JavaScript Demo</title>
+  </head>
+
+  <body onload="isLoaded()">
+    <h1>Universal Messaging JavaScript Demo</h1>
+
+      <div id="connected" class=""></div>
+
+      <form onsubmit="publishMessage(); return false;">
+
+        <h2>Input</h2>
+        <!-- <input type="text" id="demoInput"/> -->
+        <input type="submit" value="Send new message">
+
+        <h2>Output</h2>
+        <textarea id="outputTextarea" rows="10" cols="70"></textarea>
+
+      </form>
+
+    </body>
+</html>
