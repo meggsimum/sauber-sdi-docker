@@ -15,19 +15,21 @@
 
 FROM postgrest/postgrest:latest
 LABEL maintainer="Felix Schmenger<Felix.Schmenger@geomer.de>"
+LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
 
 
 USER root
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get update && apt-get install -y make git postgresql-server-dev-11 postgresql-11-pgtap
-RUN mkdir "/pgjwt"
-WORKDIR "/pgjwt"
-COPY . .
-RUN make && make install
+RUN apt-get update && apt-get install -y make git curl wget
 
-# Install curl, which is required for health checks.
-RUN apt-get install -y curl
+RUN wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | apt-key add -
+RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
+RUN apt-get update && apt-get install -y postgresql-server-dev-11 postgresql-11-pgtap
 
+# RUN mkdir "/pgjwt"
+# WORKDIR "/pgjwt"
+# COPY . .
+# RUN make && make install
 
 # Declare all optional environment variables used in configuration files and set them to defaults.
 # The values provided here are fallbacks and can be overwritten in the docker-compose.yml file.
@@ -42,7 +44,7 @@ ENV \
   PGRST_MAX_ROWS= \
   PGRST_PRE_REQUEST=
 
-COPY ./config/postgrest.conf /etc/postgrest.conf
+COPY ./resources/config/postgrest.conf /etc/postgrest.conf
 
 # Set an entrypoint script to obtain secrets from the secure mount point.
 COPY resources/bin/docker-entrypoint.sh /usr/local/bin/
