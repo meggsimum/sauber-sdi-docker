@@ -49,6 +49,7 @@ secrets:
         name: sauber_manager_password_v1
 
 services:
+
     db:
         image: "sauber_postgis_alpine"
         networks:
@@ -109,8 +110,11 @@ services:
         # secrets:
         environment:
             - USE_CORS=1
-        volumes:
-            - geoserver_data:/opt/geoserver_data
+            - USE_VECTOR_TILES=1
+            - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
+        # volumes:
+        #     - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
+        #     - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
         deploy:
             replicas: 1
             restart_policy:
@@ -203,3 +207,26 @@ services:
     #             condition: on-failure
     #     depends_on:
     #         - um_server
+    #     tty:
+    #         true  #Keep Container alive, else completes and shuts down
+    #
+
+    traffic-demo-client:
+        image: chrismayer8/traffic-webgis
+        networks:
+            - network
+        ports:
+            - "9000:80"
+        depends_on:
+            - geoserver
+
+    proxy-webserver:
+        image: nginx:stable
+        ports:
+            - "80:80"
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        networks:
+            - network
+        depends_on:
+            - geoserver
