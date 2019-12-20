@@ -196,15 +196,12 @@ services:
         ports:
             - "9876:9000"
 
-    # um_subscriber:
-    #     image: "sauber_java-um-subscribe-download:latest"
+    # raster_downloader_demo:
+    #     image: "sauber_raster-download:latest"
     #     networks:
     #         - network
-    #     # secrets:
-    #     volumes:
-    #         - /var/run/docker.sock:/var/run/docker.sock
     #     environment:
-    #         - umserver=um_server:9000
+    #         - UMSERVER=um_server:9000
     #     deploy:
     #         restart_policy:
     #             condition: on-failure
