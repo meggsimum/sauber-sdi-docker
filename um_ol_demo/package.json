@@ -1,0 +1,37 @@
+{
+  "name": "um-ol-demo",
+  "version": "1.0.0",
+  "description": "Proof of concept for interaction of UM bus and OpenLayers",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build --public-url . index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "UM",
+    "OpenLayers",
+    "SAUBER",
+    "GeoTIFF"
+  ],
+  "contributors": [
+    {
+      "name": "J. Kaeflein, geomer GmbH"
+    },
+    {
+      "name": "C. Mayer, meggsimum"
+    }
+  ],
+  "license": "BSD-2-Clause",
+  "dependencies": {
+    "geotiff.js": "^1.0.1",
+    "ol": "^6.1.1",
+    "plotty": "^0.4.1"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4"
+  }
+}

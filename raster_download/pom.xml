@@ -1,0 +1,68 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>de.meggsimum.sauber</groupId>
+	<artifactId>raster-download</artifactId>
+	<version>0.0.1</version>
+	<packaging>jar</packaging>
+
+	<build>
+		<finalName>raster-download</finalName>
+
+		<plugins>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<archive>
+								<manifest>
+									<mainClass>
+										de.meggsimum.sauber.sdi.RasterDownloaderApp
+									</mainClass>
+								</manifest>
+							</archive>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+	</build>
+
+
+	<dependencies>
+
+		<!-- Client lib for Universal Messaging Channel -->
+		<dependency>
+			<groupId>com.pcbsys.nirvana.client</groupId>
+			<artifactId>sample</artifactId>
+			<version>1.0</version>
+		</dependency>
+
+		<!-- JSON processing lib -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>20190722</version>
+		</dependency>
+
+		<!-- TIFF extensio for ImageIO -->
+		<dependency>
+			<groupId>com.twelvemonkeys.imageio</groupId>
+			<artifactId>imageio-tiff</artifactId>
+			<version>3.4.2</version>
+		</dependency>
+
+	</dependencies>
+</project>
