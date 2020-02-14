@@ -16,7 +16,7 @@ window.onload = isLoaded;
 
 function isLoaded() {
     session = Nirvana.createSession({
-        realms: ["http://localhost:9876"],
+        realms: ['http://159.69.72.183:9876'],
         // this can be an array of realms
         debugLevel: 4, // 1-9 (1 = noisy, 8 = severe, 9 = default = off)
         sessionTimeoutMs: 10000,
