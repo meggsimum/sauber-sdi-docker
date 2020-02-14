@@ -1,10 +1,12 @@
 FROM alpine:latest
 LABEL Name=sauber_lubw_download Version=0.0.1
+LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
-RUN apk update \ 
-        && apk add -U \ 
+
+RUN apk update \
+        && apk add -U \
         busybox-initscripts \
-        openrc \ 
+        openrc \
         curl \
         postgresql-client \
         bash
@@ -22,7 +24,7 @@ RUN crontab sauber_cron.txt
 
 RUN chmod 775 /dl_sauber_ftp.sh
 RUN chmod 775 /data/xml_data/
-RUN chmod 775 /data/temp/       
+RUN chmod 775 /data/temp/
 
 RUN sed -i 's/bin\/ash/bin\/bash/' /etc/passwd
 

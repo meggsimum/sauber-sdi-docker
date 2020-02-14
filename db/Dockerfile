@@ -2,10 +2,10 @@ ARG POSTGRES_VERSION=11
 ARG TIMESCALE_VERSION=1.5.1
 
 FROM timescale/timescaledb:${TIMESCALE_VERSION}-pg${POSTGRES_VERSION}
-LABEL maintainer ="Julian.Kaeflein@geomer.de"
+LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
 ARG POSTGIS_VERSION=3.0.0
-ENV POSTGIS=${POSTGIS_VERSION} 
+ENV POSTGIS=${POSTGIS_VERSION}
 
 RUN set -ex \
     && apk add --no-cache --virtual .fetch-deps \
@@ -16,7 +16,7 @@ RUN set -ex \
                 --repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
                 libressl2.7-libcrypto \
                 libcrypto1.1 \
-    && apk add -U --no-cache --virtual .postgis-deps \ 
+    && apk add -U --no-cache --virtual .postgis-deps \
     --repository http://nl.alpinelinux.org/alpine/edge/community \
     --repository http://nl.alpinelinux.org/alpine/edge/main \
         geos \
@@ -54,7 +54,7 @@ RUN set -ex \
     && rm -rf /tmp/postgis-${POSTGIS} \
     && apk del .fetch-deps .build-deps
 
-RUN mkdir -p /docker-entrypoint-initdb.d 
+RUN mkdir -p /docker-entrypoint-initdb.d
 
 COPY docker-entrypoint-initdb.d/* docker-entrypoint-initdb.d/
 COPY resources/bin/import-data.sh /usr/local/bin/import-data.sh
@@ -64,4 +64,4 @@ RUN chmod 775 /usr/local/bin/import-data.sh
 RUN chown -R postgres:postgres /var/lib/postgresql
 
 ENV POSTGIS_ENABLE_OUTDB_RASTERS=1 \
-    POSTGIS_GDAL_ENABLED_DRIVERS=ENABLE_ALL 
+    POSTGIS_GDAL_ENABLED_DRIVERS=ENABLE_ALL

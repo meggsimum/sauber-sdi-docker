@@ -26,21 +26,21 @@ secrets:
     postgrest_jwt_secret:
         file: ./secrets/pgrst_jwt_secret.txt
         name: pgrest_sauber_v1
-    lubw_user: 
+    lubw_user:
         file: ./secrets/lubw_user.txt
-        name: lubw_user_v1        
-    lubw_password: 
+        name: lubw_user_v1
+    lubw_password:
         file: ./secrets/lubw_password.txt
         name: lubw_password_v1
-    lubw_server: 
+    lubw_server:
         file: ./secrets/lubw_server.txt
         name: lubw_server_v1
-    geoserver_user:
-        file: ./secrets/geoserver_user.txt
-        name: geoserver_user_v1
-    geoserver_password:
-        file: ./secrets/geoserver_password.txt
-        name: geoserver_password_v1
+    # geoserver_user:
+    #     file: ./secrets/geoserver_user.txt
+    #     name: geoserver_user_v1
+    # geoserver_password:
+    #     file: ./secrets/geoserver_password.txt
+    #     name: geoserver_password_v1
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
         name: sauber_user_password_v1
@@ -49,13 +49,14 @@ secrets:
         name: sauber_manager_password_v1
 
 services:
+
     db:
         image: "sauber_postgis_alpine"
         networks:
             - network
         volumes:
-            - db_data:/var/lib/postgresql/data  
-        secrets: 
+            - db_data:/var/lib/postgresql/data
+        secrets:
             - postgrest_jwt_secret
             - postgrest_password
             - sauber_manager_password
@@ -78,7 +79,7 @@ services:
             - "5440:5432"
 
     lubw_download:
-        image: "lubw_import:latest"
+        image: "sauber_lubw_import:latest"
         networks:
             - network
         volumes:
@@ -100,17 +101,20 @@ services:
             restart_policy:
                 condition: on-failure
         depends_on:
-            - db              
+            - db
 
     geoserver:
         image: "meggsimum/geoserver"
         networks:
-            - network 
+            - network
         # secrets:
         environment:
             - USE_CORS=1
-        volumes:
-            - geoserver_data:/opt/geoserver_data
+            - USE_VECTOR_TILES=1
+            - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
+        # volumes:
+        #     - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
+        #     - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
         deploy:
             replicas: 1
             restart_policy:
@@ -122,7 +126,7 @@ services:
 
 
     postgrest_lubw:
-        image: "postgrest:latest"
+        image: "sauber_postgrest:latest"
         networks:
             - network
         secrets:
@@ -132,7 +136,7 @@ services:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_USER=authenticator
             - PGRST_DB_POOL=5
-            - PGRST_MAX_ROWS=100 
+            - PGRST_MAX_ROWS=100
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - PGRST_DB_SERVER=db
             - PGRST_DB_PORT=5432
@@ -148,7 +152,7 @@ services:
             - "3001:3000"
 
     postgrest_here:
-        image: "postgrest:latest"
+        image: "sauber_postgrest:latest"
         networks:
             - network
         secrets:
@@ -158,7 +162,7 @@ services:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_USER=authenticator
             - PGRST_DB_POOL=5
-            - PGRST_MAX_ROWS=100 
+            - PGRST_MAX_ROWS=100
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - PGRST_DB_SERVER=db
             - PGRST_DB_PORT=5432
@@ -192,15 +196,12 @@ services:
         ports:
             - "9876:9000"
 
-    # um_subscriber:
-    #     image: "java-subscribe-download:latest"
+    # raster_downloader_demo:
+    #     image: "sauber_raster-download:latest"
     #     networks:
     #         - network
-    #     # secrets:
-    #     volumes:
-    #         - /var/run/docker.sock:/var/run/docker.sock
     #     environment:
-    #         - umserver=um_server:9000
+    #         - UMSERVER=um_server:9000
     #     deploy:
     #         restart_policy:
     #             condition: on-failure
@@ -208,3 +209,24 @@ services:
     #         - um_server
     #     tty:
     #         true  #Keep Container alive, else completes and shuts down
+    #
+
+    traffic-demo-client:
+        image: chrismayer8/traffic-webgis
+        networks:
+            - network
+        ports:
+            - "9000:80"
+        depends_on:
+            - geoserver
+
+    proxy-webserver:
+        image: nginx:stable
+        ports:
+            - "80:80"
+        volumes:
+            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+        networks:
+            - network
+        depends_on:
+            - geoserver
