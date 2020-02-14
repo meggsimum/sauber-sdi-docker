@@ -17,13 +17,15 @@
         }
     </style>
 
-    <script src="./node_modules/plotty/dist/plotty.min.js"></script>
+    <!-- loading this as external resource avoids trouble with the parcel bundler
+    which leads to that plotty is not found in index.js  -->
+    <script src="http://sauber-projekt.meggsimum.de/libs/plotty.min.js"></script>
     <script src="./lib/um-js/nirvana.js"></script>
 </head>
 
 <body>
     <div id="map" class="map">
-        <textarea id="outputTextarea" rows="2" cols="140"></textarea>
+        <textarea id="outputTextarea" rows="12" cols="140"></textarea>
     </div>
 
     <script src="./index.js"></script>

@@ -16,7 +16,7 @@ window.onload = isLoaded;
 
 function isLoaded() {
     session = Nirvana.createSession({
-        realms: ["http://localhost:9876"],
+        realms: ['http://159.69.72.183:9876'],
         // this can be an array of realms
         debugLevel: 4, // 1-9 (1 = noisy, 8 = severe, 9 = default = off)
         sessionTimeoutMs: 10000,
@@ -58,7 +58,7 @@ function isLoaded() {
         console.log(pingtime);
         // Can be removed
 
-        if (url.endsWith("e.tif")) {
+        if (url.endsWith("https://sauber-projekt.meggsimum.de/demo-data/sauber_stuttgart_example.tif")) {
             try {
                 fetch(url).then(response => response.arrayBuffer()).then(onGeotiffLoaded);
             } catch (err) {}
@@ -71,36 +71,47 @@ function isLoaded() {
 
 // Parser and plotter for incoming GeoTiffs
 function onGeotiffLoaded(data) {
-    const tiff = geoTiffFromArrayBuffer(data);
-    const image = tiff.getImage();
-    const rawBox = image.getBoundingBox();
-    const box = [rawBox[0], rawBox[1] - (rawBox[3] - rawBox[1]), rawBox[2], rawBox[1]];
-    // Change bbox order to OL-compatible
-    const bands = image.readRasters();
-    let canvas = document.createElement('canvas');
-    const minValue = 0;
-    const maxValue = 256;
 
-    const plot = new plotty.plot({
-        canvas: canvas,
-        data: bands[0],
-        width: image.getWidth(),
-        height: image.getHeight(),
-        domain: [minValue, maxValue],
-        colorScale: 'magma',
-        clampLow: true,
-        clampHigh: true
+    // parse GeoTIFF
+    geoTiffFromArrayBuffer(data).then(tiff => {
+      const image = tiff.getImage().then(image => {
+        const rawBox = image.getBoundingBox();
+        // make bbox order OL-compatible
+        const box = [rawBox[0], rawBox[1] - (rawBox[3] - rawBox[1]), rawBox[2], rawBox[1]];
+
+        const bands = image.readRasters().then(bands => {
+          let canvas = document.createElement('canvas');
+          const minValue = 0;
+          const maxValue = 256;
+
+          // create renderable image from GeoTIFF
+          const plot = new plotty.plot({
+              canvas: canvas,
+              data: bands[0],
+              width: image.getWidth(),
+              height: image.getHeight(),
+              domain: [minValue, maxValue],
+              colorScale: 'magma',
+              clampLow: true,
+              clampHigh: true
+          });
+
+          plot.render();
+
+          const geotiffSource = new ImageSource({
+              url: canvas.toDataURL("image/png"),
+              imageExtent: box,
+              projection: 'EPSG:3857'
+          })
+          geotiffLayer.setSource(geotiffSource);
+          geotiffLayer.setOpacity(0.5);
+
+          // set map view to GeoTIFF's extent
+          map.getView().fit(box);
+        });
+
+      });
     });
-
-    plot.render();
-
-    const geotiffSource = new ImageSource({
-        url: canvas.toDataURL("image/png"),
-        imageExtent: box,
-        projection: 'EPSG:3857'
-    })
-    geotiffLayer.setSource(geotiffSource);
-    geotiffLayer.setOpacity(0.5);
 };
 
 // create a empty layer, which is overwritten in UM message callback (onGeotiffLoaded)
