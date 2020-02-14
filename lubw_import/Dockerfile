@@ -1,9 +1,13 @@
 FROM alpine:latest
+LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 LABEL Name=sauber_lubw_download Version=0.0.1
+
+RUN sed -i '/edge/s/^#//' /etc/apk/repositories
 
 RUN apk update \ 
         && apk add -U \ 
         busybox-initscripts \
+        busybox \
         openrc \ 
         curl \
         postgresql-client \
