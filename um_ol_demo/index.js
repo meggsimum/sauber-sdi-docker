@@ -58,7 +58,7 @@ function isLoaded() {
         console.log(pingtime);
         // Can be removed
 
-        if (url.endsWith("e.tif")) {
+        if (url.endsWith("https://sauber-projekt.meggsimum.de/demo-data/sauber_stuttgart_example.tif")) {
             try {
                 fetch(url).then(response => response.arrayBuffer()).then(onGeotiffLoaded);
             } catch (err) {}
@@ -72,21 +72,19 @@ function isLoaded() {
 // Parser and plotter for incoming GeoTiffs
 function onGeotiffLoaded(data) {
 
+    // parse GeoTIFF
     geoTiffFromArrayBuffer(data).then(tiff => {
-      console.log(tiff);
-
       const image = tiff.getImage().then(image => {
-        console.log(image);
         const rawBox = image.getBoundingBox();
         // make bbox order OL-compatible
         const box = [rawBox[0], rawBox[1] - (rawBox[3] - rawBox[1]), rawBox[2], rawBox[1]];
-
 
         const bands = image.readRasters().then(bands => {
           let canvas = document.createElement('canvas');
           const minValue = 0;
           const maxValue = 256;
 
+          // create renderable image from GeoTIFF
           const plot = new plotty.plot({
               canvas: canvas,
               data: bands[0],
