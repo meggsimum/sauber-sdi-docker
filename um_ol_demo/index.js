@@ -78,9 +78,10 @@ function onGeotiffLoaded(data) {
       const image = tiff.getImage().then(image => {
         console.log(image);
         const rawBox = image.getBoundingBox();
+        // make bbox order OL-compatible
         const box = [rawBox[0], rawBox[1] - (rawBox[3] - rawBox[1]), rawBox[2], rawBox[1]];
 
-        // Change bbox order to OL-compatible
+
         const bands = image.readRasters().then(bands => {
           let canvas = document.createElement('canvas');
           const minValue = 0;
@@ -106,6 +107,9 @@ function onGeotiffLoaded(data) {
           })
           geotiffLayer.setSource(geotiffSource);
           geotiffLayer.setOpacity(0.5);
+
+          // set map view to GeoTIFF's extent
+          map.getView().fit(box);
         });
 
       });
