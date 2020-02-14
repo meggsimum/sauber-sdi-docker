@@ -20,7 +20,7 @@ LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
 
 USER root
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get update && apt-get install -y make git curl wget
+RUN apt-get update && apt-get install -y make git curl wget gnupg
 
 RUN wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | apt-key add -
 RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'

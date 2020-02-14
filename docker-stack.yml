@@ -1,7 +1,7 @@
 version: "3.7"
 
 networks:
-    network:
+    sauber-network:
         attachable: true
 
 volumes:
@@ -53,7 +53,7 @@ services:
     db:
         image: "sauber_postgis_alpine"
         networks:
-            - network
+            - sauber-network
         volumes:
             - db_data:/var/lib/postgresql/data
         secrets:
@@ -81,7 +81,7 @@ services:
     lubw_download:
         image: "sauber_lubw_import:latest"
         networks:
-            - network
+            - sauber-network
         volumes:
             - lubw_data:/usr/src/ftp
         secrets:
@@ -106,7 +106,7 @@ services:
     geoserver:
         image: "meggsimum/geoserver"
         networks:
-            - network
+            - sauber-network
         # secrets:
         environment:
             - USE_CORS=1
@@ -125,62 +125,62 @@ services:
             - "8080:8080"
 
 
-    postgrest_lubw:
-        image: "sauber_postgrest:latest"
-        networks:
-            - network
-        secrets:
-            - postgrest_jwt_secret
-            - postgrest_password
-        environment:
-            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
-            - PGRST_USER=authenticator
-            - PGRST_DB_POOL=5
-            - PGRST_MAX_ROWS=100
-            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
-            - PGRST_DB_SERVER=db
-            - PGRST_DB_PORT=5432
-            - PGRST_DB_NAME=lubw_messstellen
-            - PGRST_DB_SCHEMA=daten
-            - PGRST_DB_ANON_ROLE=anon
-        deploy:
-            restart_policy:
-             condition: on-failure
-        depends_on:
-            - db
-        ports:
-            - "3001:3000"
+    # postgrest_lubw:
+    #     image: "sauber_postgrest:latest"
+    #     networks:
+    #         - network
+    #     secrets:
+    #         - postgrest_jwt_secret
+    #         - postgrest_password
+    #     environment:
+    #         - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+    #         - PGRST_USER=authenticator
+    #         - PGRST_DB_POOL=5
+    #         - PGRST_MAX_ROWS=100
+    #         - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+    #         - PGRST_DB_SERVER=db
+    #         - PGRST_DB_PORT=5432
+    #         - PGRST_DB_NAME=lubw_messstellen
+    #         - PGRST_DB_SCHEMA=daten
+    #         - PGRST_DB_ANON_ROLE=anon
+    #     deploy:
+    #         restart_policy:
+    #          condition: on-failure
+    #     depends_on:
+    #         - db
+    #     ports:
+    #         - "3001:3000"
 
-    postgrest_here:
-        image: "sauber_postgrest:latest"
-        networks:
-            - network
-        secrets:
-            - postgrest_jwt_secret
-            - postgrest_password
-        environment:
-            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
-            - PGRST_USER=authenticator
-            - PGRST_DB_POOL=5
-            - PGRST_MAX_ROWS=100
-            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
-            - PGRST_DB_SERVER=db
-            - PGRST_DB_PORT=5432
-            - PGRST_DB_NAME=here
-            - PGRST_DB_SCHEMA=here_traffic
-            - PGRST_DB_ANON_ROLE=anon
-        deploy:
-            restart_policy:
-             condition: on-failure
-        depends_on:
-            - db
-        ports:
-            - "3002:3000"
+    # postgrest_here:
+    #     image: "sauber_postgrest:latest"
+    #     networks:
+    #         - sauber-network
+    #     secrets:
+    #         - postgrest_jwt_secret
+    #         - postgrest_password
+    #     environment:
+    #         - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+    #         - PGRST_USER=authenticator
+    #         - PGRST_DB_POOL=5
+    #         - PGRST_MAX_ROWS=100
+    #         - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+    #         - PGRST_DB_SERVER=db
+    #         - PGRST_DB_PORT=5432
+    #         - PGRST_DB_NAME=here
+    #         - PGRST_DB_SCHEMA=here_traffic
+    #         - PGRST_DB_ANON_ROLE=anon
+    #     deploy:
+    #         restart_policy:
+    #          condition: on-failure
+    #     depends_on:
+    #         - db
+    #     ports:
+    #         - "3002:3000"
 
     um_server:
         image: "store/softwareag/universalmessaging-server:10.5"
         networks:
-            - network
+            - sauber-network
         # secrets:
         # environment:
         deploy:
@@ -214,7 +214,7 @@ services:
     traffic-demo-client:
         image: chrismayer8/traffic-webgis
         networks:
-            - network
+            - sauber-network
         ports:
             - "9000:80"
         depends_on:
@@ -227,6 +227,6 @@ services:
         volumes:
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
         networks:
-            - network
+            - sauber-network
         depends_on:
             - geoserver
