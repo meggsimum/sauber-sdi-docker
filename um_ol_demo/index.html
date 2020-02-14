@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>UM / OL Demo</title>
+    <style>
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+        }
+
+        .map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+
+    <!-- loading this as external resource avoids trouble with the parcel bundler
+    which leads to that plotty is not found in index.js  -->
+    <script src="http://sauber-projekt.meggsimum.de/libs/plotty.min.js"></script>
+    <script src="./lib/um-js/nirvana.js"></script>
+</head>
+
+<body>
+    <div id="map" class="map">
+        <textarea id="outputTextarea" rows="12" cols="140"></textarea>
+    </div>
+
+    <script src="./index.js"></script>
+</body>
+
+</html>

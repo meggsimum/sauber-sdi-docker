@@ -1,6 +1,7 @@
 FROM alpine:latest
 LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 LABEL Name=sauber_lubw_download Version=0.0.1
+LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
 RUN sed -i '/edge/s/^#//' /etc/apk/repositories
 
@@ -26,7 +27,7 @@ RUN crontab sauber_cron.txt
 
 RUN chmod 775 /dl_sauber_ftp.sh
 RUN chmod 775 /data/xml_data/
-RUN chmod 775 /data/temp/       
+RUN chmod 775 /data/temp/
 
 RUN sed -i 's/bin\/ash/bin\/bash/' /etc/passwd
 
