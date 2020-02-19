@@ -220,6 +220,13 @@ services:
         depends_on:
             - geoserver
 
+    um-ol-demo:
+        image: sauber_um_ol_demo:latest
+        networks:
+            - sauber-network
+        ports:
+            - "9999:80"
+
     proxy-webserver:
         image: nginx:stable
         ports:
