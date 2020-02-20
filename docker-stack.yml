@@ -237,3 +237,10 @@ services:
             - sauber-network
         depends_on:
             - geoserver
+
+    um-publisher:
+        image: um_publisher:latest
+        networks: 
+            - sauber-network
+        ports:
+            - "9990:80"
