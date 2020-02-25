@@ -11,15 +11,8 @@
             height: 100%;
             margin: 0;
         }
-
-        .map {
-            height: 100%;
-            width: 100%;
-        }
     </style>
 
-    <!-- loading this as external resource avoids trouble with the parcel bundler
-    which leads to that plotty is not found in index.js  -->
     <script language="JavaScript" src="./lib/um-js/nirvana.js"></script>
     <script src="./index.js"></script>
 </head>
@@ -32,7 +25,6 @@
     <form onsubmit="publishMessage(); return false;">
 
       <h2>Input</h2>
-      <!-- <input type="text" id="demoInput"/> -->
       <input type="submit" value="Send new message">
 
       <h2>Output</h2>

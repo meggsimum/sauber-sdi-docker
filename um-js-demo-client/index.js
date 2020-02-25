@@ -5,8 +5,10 @@ window.onload = isLoaded;
 
 function isLoaded() {
 
+  var channelName = 'HeartbeatChannel';
+
   session = Nirvana.createSession({
-      realms            : [ "http://159.69.72.183:9876" ],
+      realms            : [ 'http://159.69.72.183:9876' ],
                           // this can be an array of realms
       debugLevel        : 1, // 1-9 (1 = noisy, 8 = severe, 9 = default = off)
       sessionTimeoutMs  : 10000,
@@ -21,7 +23,7 @@ function isLoaded() {
     });
 
     function sessionStarted(s) {
-        console.log("Session started with ID " + s.getSessionID());
+        console.log('Session started with ID ' + s.getSessionID());
 
         document.querySelector('#connected').innerHTML = 'Connected (Session ' + s.getSessionID() + ')'
     }
@@ -30,13 +32,16 @@ function isLoaded() {
 
     session.start();
 
-    channel = session.getChannel("HeartbeatChannel");
+    channel = session.getChannel(channelName);
 
     // Assign a handler function for Universal Messaging Events received on the Channel,
     // then subscribe:
     function myEventHandler(event) {
         var dictionary = event.getDictionary();
-        document.querySelector('#outputTextarea').value += dictionary.get("timestamp") + ' | ' + dictionary.get("category") + ' | ' + dictionary.get("source") + '\n'
+        document.querySelector('#outputTextarea').value +=
+            dictionary.get('timestamp') + ' | ' +
+            dictionary.get('category') + ' | ' +
+            dictionary.get('source') + '\n'
     }
 
     channel.on(Nirvana.Observe.DATA, myEventHandler);
@@ -48,10 +53,10 @@ function publishMessage() {
   var evt = Nirvana.createEvent();
   var evtDict = evt.getDictionary();
 
-  evtDict.putString("timestamp", new Date().getTime());
-  evtDict.putString("category", "realtime");
-  evtDict.putString("source", "hhi");
-  evtDict.putString("url", "https://sauber-projekt.meggsimum.de/demo-data/sauber_stuttgart_example.tif");
+  evtDict.putString('timestamp', new Date().getTime());
+  evtDict.putString('category', 'realtime');
+  evtDict.putString('source', 'hhi');
+  evtDict.putString('url', 'https://sauber-projekt.meggsimum.de/demo-data/sauber_stuttgart_example.tif');
   channel.publish(evt);
   console.log(evtDict);
 }
