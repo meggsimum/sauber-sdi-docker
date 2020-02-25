@@ -13,4 +13,6 @@ docker build --rm -f "lubw_import/Dockerfile" -t lubw_download:latest "lubw_impo
 
 docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauber_um_ol_demo:latest "um_ol_demo"
 
+docker build --rm -f "um-js-demo-client/Dockerfile" -t sauber_um_js_demo:latest "um-js-demo-client"
+
 docker stack deploy -c docker-stack.yml sauber-stack
