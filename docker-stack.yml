@@ -244,6 +244,7 @@ services:
             - sauber-network
         depends_on:
             - geoserver
+            - um_server
 
     um-publisher:
         image: um_publisher:latest
