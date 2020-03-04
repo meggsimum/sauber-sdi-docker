@@ -245,6 +245,7 @@ services:
         depends_on:
             - geoserver
             - um_server
+            - um-js-demo
 
     um-publisher:
         image: um_publisher:latest
