@@ -8,7 +8,7 @@ function isLoaded() {
   var channelName = 'HeartbeatChannel';
 
   session = Nirvana.createSession({
-      realms            : [ 'http://159.69.72.183/um/', 'http://159.69.72.183:9876' ],
+      realms            : [ 'http://159.69.72.183/um/' ],
                           // this can be an array of realms
       debugLevel        : 1, // 1-9 (1 = noisy, 8 = severe, 9 = default = off)
       sessionTimeoutMs  : 10000,
