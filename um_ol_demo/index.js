@@ -72,6 +72,11 @@ function isLoaded() {
 // Parser and plotter for incoming GeoTiffs
 function onGeotiffLoaded(data) {
 
+    const colorScaleList = ['viridis', 'inferno', 'rainbow', 'jet', 'hsv',
+    'hot', 'cool', 'spring', 'summer', 'autumn', 'winter', 'bone', 'copper',
+    'greys', 'yignbu', 'greens', 'yiorrd', 'bluered', 'rdbu', 'picnic',
+    'portland', 'blackbody', 'earth', 'electric', 'magma', 'plasma'];
+
     // parse GeoTIFF
     geoTiffFromArrayBuffer(data).then(tiff => {
       const image = tiff.getImage().then(image => {
@@ -91,7 +96,8 @@ function onGeotiffLoaded(data) {
               width: image.getWidth(),
               height: image.getHeight(),
               domain: [minValue, maxValue],
-              colorScale: 'magma',
+              // random color ramp
+              colorScale: colorScaleList[Math.floor(Math.random() * colorScaleList.length)],
               clampLow: true,
               clampHigh: true
           });
