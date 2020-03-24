@@ -17,6 +17,13 @@ docker stack deploy -c docker-stack.yml sauber-stack
 
 UM_SERVER_ID=`docker ps | grep um_server | cut -c1-5` # Get container ID of UM-Server
 
+CHANNELS=("HeartbeatChannel" "geotiff-demo")
+
 if docker inspect -f '{{.State.Running}}' $UM_SERVER_ID > /dev/null ; then # Wait for UM Server to be up and running (State.Running = true)
-    docker exec $UM_SERVER_ID runUMTool.sh CreateChannel -rname=nsp://localhost:9000 -channelname=HeartbeatChannel # Create Heartbeat Channel on UM Server
+    for channel in $CHANNELS
+    do 
+    if ! docker exec $UM_SERVER_ID runUMTool.sh ListChannels -rname=nsp://localhost:9000 | grep $channel ; then
+        docker exec $UM_SERVER_ID runUMTool.sh CreateChannel -rname=nsp://localhost:9000 -channelname=$channel # Create Heartbeat Channel on UM Server
+    fi; 
+    done;    
 fi
