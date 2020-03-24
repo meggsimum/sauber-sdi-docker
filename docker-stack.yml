@@ -227,6 +227,13 @@ services:
         ports:
             - "9999:80"
 
+    um-js-demo:
+        image: sauber_um_js_demo:latest
+        networks:
+            - sauber-network
+        ports:
+            - "9998:80"
+
     proxy-webserver:
         image: nginx:stable
         ports:
@@ -237,3 +244,12 @@ services:
             - sauber-network
         depends_on:
             - geoserver
+            - um_server
+            - um-js-demo
+
+    um-publisher:
+        image: um_publisher:latest
+        networks:
+            - sauber-network
+        ports:
+            - "9990:80"
