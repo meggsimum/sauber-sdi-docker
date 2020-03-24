@@ -78,31 +78,6 @@ services:
         ports:
             - "5440:5432"
 
-    lubw_download:
-        image: "sauber_lubw_import:latest"
-        networks:
-            - sauber-network
-        volumes:
-            - lubw_data:/usr/src/ftp
-        secrets:
-            - sauber_manager_password
-            - lubw_server
-            - lubw_user
-            - lubw_password
-        environment:
-            - POSTGIS_HOSTNAME=db
-            - LUBW_DATABASE=lubw_messstellen
-            - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
-            - LUBW_USER_FILE=/run/secrets/lubw_user
-            - LUBW_SERVER_FILE=/run/secrets/lubw_server
-            - LUBW_PASSWORD_FILE=/run/secrets/lubw_password
-        deploy:
-            replicas: 1
-            restart_policy:
-                condition: on-failure
-        depends_on:
-            - db
-
     geoserver:
         image: "meggsimum/geoserver"
         networks:
