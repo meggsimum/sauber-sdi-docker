@@ -14,3 +14,9 @@ docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauber_um_ol_demo:latest 
 docker build --rm -f "um-js-demo-client/Dockerfile" -t sauber_um_js_demo:latest "um-js-demo-client"
 
 docker stack deploy -c docker-stack.yml sauber-stack
+
+UM_SERVER_ID=`docker ps | grep um_server | cut -c1-5` # Get container ID of UM-Server
+
+if docker inspect -f '{{.State.Running}}' $UM_SERVER_ID > /dev/null ; then # Wait for UM Server to be up and running (State.Running = true)
+    docker exec $UM_SERVER_ID runUMTool.sh CreateChannel -rname=nsp://localhost:9000 -channelname=HeartbeatChannel # Create Heartbeat Channel on UM Server
+fi
