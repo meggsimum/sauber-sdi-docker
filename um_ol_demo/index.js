@@ -36,7 +36,7 @@ function isLoaded() {
     }
     session.on(Nirvana.Observe.START, sessionStarted);
     session.start();
-    channel = session.getChannel("HeartbeatChannel");
+    channel = session.getChannel("geotiff-demo");
 
     function umEventHandler(event) {
         let dictionary = event.getDictionary();
