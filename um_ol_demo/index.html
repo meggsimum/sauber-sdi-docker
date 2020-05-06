@@ -12,9 +12,16 @@
             margin: 0;
         }
 
+        #outputTextarea {
+            width: 50%;
+        }
+
         .map {
-            height: 100%;
             width: 100%;
+            position: absolute;
+            top: 200px;
+            bottom: 0;
+            background-color:lightgrey;
         }
     </style>
 
@@ -25,9 +32,9 @@
 </head>
 
 <body>
-    <div id="map" class="map">
-        <textarea id="outputTextarea" rows="12" cols="140"></textarea>
-    </div>
+    <textarea id="outputTextarea" rows="12" cols="140"></textarea>
+
+    <div id="map" class="map"></div>
 
     <script src="./index.js"></script>
 </body>
