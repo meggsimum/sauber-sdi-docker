@@ -16,6 +16,12 @@
             width: 50%;
         }
 
+        .publish-btn {
+            position: absolute;
+            top: 171px;
+            margin-left: 10px;
+        }
+
         .map {
             width: 100%;
             position: absolute;
@@ -33,6 +39,8 @@
 
 <body>
     <textarea id="outputTextarea" rows="12" cols="140"></textarea>
+
+    <button class="publish-btn" onclick="publishMessage(); return false;">Publish Demo Message</button>
 
     <div id="map" class="map"></div>
 
