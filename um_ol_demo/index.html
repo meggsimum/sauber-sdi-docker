@@ -12,9 +12,22 @@
             margin: 0;
         }
 
+        #outputTextarea {
+            width: 50%;
+        }
+
+        .publish-btn {
+            position: absolute;
+            top: 171px;
+            margin-left: 10px;
+        }
+
         .map {
-            height: 100%;
             width: 100%;
+            position: absolute;
+            top: 200px;
+            bottom: 0;
+            background-color:lightgrey;
         }
     </style>
 
@@ -25,9 +38,11 @@
 </head>
 
 <body>
-    <div id="map" class="map">
-        <textarea id="outputTextarea" rows="12" cols="140"></textarea>
-    </div>
+    <textarea id="outputTextarea" rows="12" cols="140"></textarea>
+
+    <button class="publish-btn" onclick="publishMessage(); return false;">Publish Demo Message</button>
+
+    <div id="map" class="map"></div>
 
     <script src="./index.js"></script>
 </body>

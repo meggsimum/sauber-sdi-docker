@@ -36,7 +36,7 @@ function isLoaded() {
     }
     session.on(Nirvana.Observe.START, sessionStarted);
     session.start();
-    channel = session.getChannel("HeartbeatChannel");
+    channel = session.getChannel("geotiff-demo");
 
     function umEventHandler(event) {
         let dictionary = event.getDictionary();
@@ -119,6 +119,21 @@ function onGeotiffLoaded(data) {
       });
     });
 };
+
+function publishMessage() {
+  var evt = Nirvana.createEvent();
+  var evtDict = evt.getDictionary();
+
+  evtDict.putString('timestamp', new Date().getTime());
+  evtDict.putString('category', 'areal-realtime');
+  evtDict.putString('source', 'hhi');
+  evtDict.putString('url', 'https://sauber-projekt.meggsimum.de/demo-data/sauber_stuttgart_example.tif');
+  channel.publish(evt);
+
+  console.log('Published the following message', evtDict);
+}
+
+window.publishMessage = publishMessage;
 
 // create a empty layer, which is overwritten in UM message callback (onGeotiffLoaded)
 const geotiffLayer = new ImageLayer({
