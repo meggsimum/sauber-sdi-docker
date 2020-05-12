@@ -15,15 +15,13 @@ docker build --rm -f "um-js-demo-client/Dockerfile" -t sauber_um_js_demo:latest 
 
 docker stack deploy -c docker-stack.yml sauber-stack
 
-UM_SERVER_ID=`docker ps | grep um_server | cut -c1-5` # Get container ID of UM-Server
+UM_SERVER_ID=`docker ps | grep um_server | cut -c1-5` ## Get all running containers. Search for UM Server container name. Get UM-Server ID by first 5 digits of response. 
 
-CHANNELS=("HeartbeatChannel" "geotiff-demo")
+CHANNELS=("HeartbeatChannel geotiff-demo") ## Add additional channels to be created
 
-if docker inspect -f '{{.State.Running}}' $UM_SERVER_ID > /dev/null ; then # Wait for UM Server to be up and running (State.Running = true)
-    for channel in $CHANNELS
-    do 
-    if ! docker exec $UM_SERVER_ID runUMTool.sh ListChannels -rname=nsp://localhost:9000 | grep $channel ; then
-        docker exec $UM_SERVER_ID runUMTool.sh CreateChannel -rname=nsp://localhost:9000 -channelname=$channel # Create Heartbeat Channel on UM Server
-    fi; 
-    done;    
-fi
+for channel in $CHANNELS; do
+    until [ `docker exec $UM_SERVER_ID runUMTool.sh ListChannels -rname=nsp://localhost:9000 | grep $channel` ]; do # Until channel exists on UM Server: 
+           docker exec $UM_SERVER_ID runUMTool.sh CreateChannel -rname=nsp://localhost:9000 -channelname=$channel # Create channel on UM Server
+    sleep 1
+    done;
+done
