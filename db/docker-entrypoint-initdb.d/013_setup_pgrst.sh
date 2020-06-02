@@ -2,7 +2,7 @@
 # Seach for 'STEP' comments for key steps  
 
 # STEP 1: Add any new DBs to list that pgREST should access
-INIT_DBS="here lubw_messstellen"
+INIT_DBS="here lubw_messstellen raster_data"
 
 # Read secrets
 file_env() {
