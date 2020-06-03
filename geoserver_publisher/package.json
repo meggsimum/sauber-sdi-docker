@@ -1,0 +1,26 @@
+{
+  "name": "sauber-geoserver-publisher",
+  "version": "0.0.1",
+  "description": "Script to publish SAUBER data to GeoServer as WMS/WFS",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Publish",
+    "GeoServer",
+    "SAUBER",
+    "WMS",
+    "WFS"
+  ],
+  "author": "C. Mayer (meggsimum)",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.1.0",
+    "eslint-config-standard": "^14.1.1"
+  }
+}
