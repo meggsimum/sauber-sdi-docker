@@ -8,6 +8,7 @@ volumes:
     db_data:
     lubw_data:
     geoserver_data:
+    raster_data:
     um_data:
     um_logs:
     um_licence:
@@ -25,7 +26,7 @@ secrets:
         name: pgrest_password_v2
     postgrest_jwt_secret:
         file: ./secrets/pgrst_jwt_secret.txt
-        name: pgrest_sauber_v1
+        name: pgrest_sauber_v2
     lubw_user:
         file: ./secrets/lubw_user.txt
         name: lubw_user_v1
@@ -35,12 +36,12 @@ secrets:
     lubw_server:
         file: ./secrets/lubw_server.txt
         name: lubw_server_v1
-    # geoserver_user:
-    #     file: ./secrets/geoserver_user.txt
-    #     name: geoserver_user_v1
-    # geoserver_password:
-    #     file: ./secrets/geoserver_password.txt
-    #     name: geoserver_password_v1
+    geoserver_user:
+        file: ./secrets/geoserver_user.txt
+        name: geoserver_user_v1
+    geoserver_password:
+        file: ./secrets/geoserver_password.txt
+        name: geoserver_password_v1
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
         name: sauber_user_password_v1
@@ -82,14 +83,18 @@ services:
         image: "meggsimum/geoserver"
         networks:
             - sauber-network
-        # secrets:
+        secrets:
+            - geoserver_user
+            - geoserver_password
         environment:
             - USE_CORS=1
             - USE_VECTOR_TILES=1
             - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
-        # volumes:
-        #     - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
-        #     - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
+        volumes:
+            - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
+            - ./geoserver_mnt/raster_data:/opt/raster_data:Z  
+           # - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
+           # - raster_data/:/opt/raster_data:Z
         deploy:
             replicas: 1
             restart_policy:
@@ -168,7 +173,7 @@ services:
             - PGRST_DB_SERVER=db
             - PGRST_DB_PORT=5432
             - PGRST_DB_NAME=raster_data
-            - PGRST_DB_SCHEMA=imagemosaic_test
+            - PGRST_DB_SCHEMA=image_mosaic
             - PGRST_DB_ANON_ROLE=anon
         deploy:
             restart_policy:
@@ -176,7 +181,7 @@ services:
         depends_on:
             - db
         ports:
-            - "3001:3000"
+            - "3000:3000"
 
     um_server:
         image: "store/softwareag/universalmessaging-server:10.5"
@@ -200,14 +205,20 @@ services:
     # raster_downloader_demo:
     #     image: "sauber_raster-download:latest"
     #     networks:
-    #         - network
+    #         - sauber-network
+    #     secrets:
+    #         - sauber_user_password
+    #                external: true
     #     environment:
     #         - UMSERVER=um_server:9000
+    #         - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
     #     deploy:
     #         restart_policy:
     #             condition: on-failure
     #     depends_on:
     #         - um_server
+    #     volumes:
+    #         - raster_data:/raster_data/:Z
     #     tty:
     #         true  #Keep Container alive, else completes and shuts down
     #

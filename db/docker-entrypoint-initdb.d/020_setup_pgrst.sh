@@ -19,7 +19,7 @@ file_env() {
 	elif [ "${!fileVar:-}" ]; then
 		val="$(< "${!fileVar}")"
 	fi
-	echo "$var,$val"
+	#echo "$var,$val"
 	export "$var"="$val"
 	unset "$fileVar" 
 }
@@ -50,7 +50,7 @@ done
 
 # STEP 3: Setup pgREST roles. 
 # For easier reading, pgrest roles could be added via DROP, CREATE 
-psql -U "${POSTGRES_USER}" -q<<- 'EOSQL'
+psql -U postgres -q<<- 'EOSQL'
     DO
     $do$
     BEGIN
