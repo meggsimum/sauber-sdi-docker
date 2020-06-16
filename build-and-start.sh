@@ -16,7 +16,7 @@ docker build --rm -f "um-js-demo-client/Dockerfile" -t sauber_um_js_demo:latest 
 
 docker stack deploy -c docker-stack.yml sauber-stack
 
-CHANNELS=("HeartbeatChannel geotiff-demo") ## Add additional channels to be created
+CHANNELS=("HeartbeatChannel raster_data station_data") ## Add additional channels to be created
 
 until [ ! -z "$UM_SERVER_ID" ]; do
     UM_SERVER_ID=`docker ps | grep um_server | cut -c1-5` ## Get all running containers. Search for UM Server container name. Get UM-Server ID by first 5 digits of response. 

@@ -15,12 +15,6 @@ volumes:
     um_users:
 
 secrets:
-    postgis_user:
-        file: ./secrets/postgis_user.txt
-        name: pg-user-v3
-    postgis_password:
-        file: ./secrets/postgis_password.txt
-        name: pg-passw-v2
     postgrest_password:
         file: ./secrets/pgrst_password.txt
         name: pgrest_password_v2
@@ -48,6 +42,9 @@ secrets:
     sauber_manager_password:
         file: ./secrets/sauber_manager_password.txt
         name: sauber_manager_password_v1
+    postgres_init_password:
+        file: ./secrets/postgres_init_password.txt
+        name: postgres_init_password_v1
 
 services:
 
@@ -62,11 +59,13 @@ services:
             - postgrest_password
             - sauber_manager_password
             - sauber_user_password
+            - postgres_init_password
         environment:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
             - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_init_password
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 10s
