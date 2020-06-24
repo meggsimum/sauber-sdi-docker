@@ -26,6 +26,8 @@ const geoserverPw = 'geoserver';
  *  - Marks the raster as published in the DB
  */
 async function publishRasters() {
+  framedBigLogging('Start process publishing SAUBER rasters to GeoServer...');
+
   // Query all unpublished rasters from DB
   const unpublishedRasters = await getUnpublishedRasters();
 
@@ -168,11 +170,35 @@ function verboseLogging(msg) {
   }
 }
 
+/**
+ * Logs message embedded in a big frame.
+ *
+ * @param {String} msg
+ */
+function framedBigLogging(msg) {
+  console.log('##############################################################');
+  console.log(msg);
+  console.log('##############################################################');
+  console.log();
+}
+
+/**
+ * Logs message embedded in a medium frame.
+ *
+ * @param {String} msg
+ */
+function framedMediumLogging(msg) {
+  console.log('--------------------------------------------------------------');
+  console.log(msg);
+  console.log('--------------------------------------------------------------');
+  console.log();
+}
+
 // check if we can connect to GeoServer REST API
 const grc = new GeoServerRestClient(geoserverUrl, geoserverUser, geoserverPw);
 grc.exists().then(gsExists => {
   if (gsExists !== true) {
-    console.error('Could not connect to GeoServer REST API - ABORT!');
+    framedMediumLogging('Could not connect to GeoServer REST API - ABORT!');
     process.exit(1);
   }
 });
