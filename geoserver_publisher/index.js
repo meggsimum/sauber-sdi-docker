@@ -30,6 +30,11 @@ async function publishRasters() {
 
   // Query all unpublished rasters from DB
   const unpublishedRasters = await getUnpublishedRasters();
+  // exit if raster metadata could not be loaded
+  if (!unpublishedRasters) {
+    framedMediumLogging('Could not get raster metadata - ABORT!');
+    process.exit(1);
+  }
 
   unpublishedRasters.forEach(rasterMetaInf => {
     verboseLogging('publish raster', rasterMetaInf);
@@ -53,8 +58,12 @@ async function publishRasters() {
 async function getUnpublishedRasters() {
   verboseLogging('Load all unpublished rasters from raster meta info DB ...');
 
+  // add trailing '/' if necessary
+  const pgrstUrl = postgRestUrl.endsWith('/') ? postgRestUrl : postgRestUrl + '/';
+
   try {
-    const url = postgRestUrl + rasterMetaTable;
+    const url = pgrstUrl + rasterMetaTable;
+    verboseLogging('URL to load raster meta info:', url);
     // const auth = getPostgRestAuth();
 
     const response = await fetch(url, {
@@ -64,18 +73,25 @@ async function getUnpublishedRasters() {
         // Authorization: 'Basic ' + auth
       }
     });
-    const rasters = await response.json();
 
-    const rasterToPublish = [];
-    rasters.forEach(rasterMetaInf => {
-      if (rasterMetaInf.is_published === 0) {
-        rasterToPublish.push(rasterMetaInf);
-      }
-    });
+    if (response.status === 200) {
+      const rasters = await response.json();
 
-    console.info('Loaded all unpublished rasters from raster meta info DB');
+      const rasterToPublish = [];
+      rasters.forEach(rasterMetaInf => {
+        if (rasterMetaInf.is_published === 0) {
+          rasterToPublish.push(rasterMetaInf);
+        }
+      });
 
-    return rasterToPublish;
+      console.info('Loaded all unpublished rasters from raster meta info DB');
+
+      return rasterToPublish;
+    } else {
+      console.error('Got non HTTP 200 response (HTTP status code', response.status, ') for loading raster meta info');
+      return false;
+    }
+
   } catch (error) {
     return false;
   }
