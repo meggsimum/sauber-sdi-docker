@@ -81,4 +81,4 @@ EOSQL
 #STEP 3: Set passwords from above. 
 
 echo "Setting secrets"
-psql -q -U "${POSTGRES_USER}" -c "ALTER USER sauber_manager PASSWORD '$SAUBER_USER_PASSWORD'; ALTER USER sauber_user PASSWORD '$SAUBER_MANAGER_PASSWORD';"
+psql -q -U "${POSTGRES_USER}" -c "ALTER USER sauber_manager PASSWORD '$SAUBER_MANAGER_PASSWORD'; ALTER USER sauber_user PASSWORD '$SAUBER_USER_PASSWORD';"

@@ -20,11 +20,11 @@ LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
 
 USER root
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get update && apt-get install -y make git curl wget gnupg
+RUN apt-get update && apt-get install -y make git curl wget 
 
-RUN wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | apt-key add -
-RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
-RUN apt-get update && apt-get install -y postgresql-server-dev-11 postgresql-11-pgtap
+# RUN wget -q https://www.postgresql.org/media/keys/ACCC4CF8.asc -O - | apt-key add -
+# RUN sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
+# RUN apt-get update && apt-get install -y postgresql-server-dev-11 postgresql-11-pgtap
 
 # RUN mkdir "/pgjwt"
 # WORKDIR "/pgjwt"
@@ -47,7 +47,7 @@ ENV \
 COPY ./resources/config/postgrest.conf /etc/postgrest.conf
 
 # Set an entrypoint script to obtain secrets from the secure mount point.
-COPY resources/bin/docker-entrypoint.sh /usr/local/bin/
+COPY ./resources/bin/docker-entrypoint.sh /usr/local/bin/
 RUN chmod 775 /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["docker-entrypoint.sh"]
 

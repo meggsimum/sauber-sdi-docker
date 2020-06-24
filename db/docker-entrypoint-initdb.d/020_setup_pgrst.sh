@@ -2,7 +2,7 @@
 # Seach for 'STEP' comments for key steps  
 
 # STEP 1: Add any new DBs to list that pgREST should access
-INIT_DBS="here lubw_messstellen"
+INIT_DBS="here lubw_messstellen sauber_data"
 
 # Read secrets
 file_env() {
@@ -19,7 +19,7 @@ file_env() {
 	elif [ "${!fileVar:-}" ]; then
 		val="$(< "${!fileVar}")"
 	fi
-	echo "$var,$val"
+	#echo "$var,$val"
 	export "$var"="$val"
 	unset "$fileVar" 
 }
@@ -50,7 +50,7 @@ done
 
 # STEP 3: Setup pgREST roles. 
 # For easier reading, pgrest roles could be added via DROP, CREATE 
-psql -U "${POSTGRES_USER}" -q<<- 'EOSQL'
+psql -U postgres -q<<- 'EOSQL'
     DO
     $do$
     BEGIN
@@ -211,6 +211,7 @@ EOSQL
 done
 
 # STEP 7: Grant pgREST roles access to actual DB data. 
+
 psql -d lubw_messstellen -q <<-'EOSQL' 
     GRANT USAGE ON SCHEMA daten TO anon; 
     GRANT SELECT ON daten.fcp_messstellen, daten.lut_datentyp, daten.lut_komponente, daten.tab_werte to anon;
@@ -221,7 +222,15 @@ psql -d here -q <<-'EOSQL'
     GRANT SELECT ON ALL TABLES IN SCHEMA here_traffic TO anon;
 EOSQL
 
-echo 'PGRST PASSWORD:                                ' $PGRST_PASSWORD
-echo 'TOKEN:                                         ' $PGRST_JWT_SECRET
+psql -d sauber_data -q <<-'EOSQL'
+    GRANT USAGE ON SCHEMA image_mosaics TO anon;
+    GRANT SELECT ON image_mosaics.raster_metadata TO anon;
+    GRANT INSERT, UPDATE (is_published) ON image_mosaics.raster_metadata TO anon;
+    GRANT USAGE ON SCHEMA station_data TO anon;
+    GRANT SELECT ON station_data.raw_input TO anon;
+EOSQL
+
+#echo 'PGRST PASSWORD: ' $PGRST_PASSWORD
+#echo 'TOKEN: ' $PGRST_JWT_SECRET
 # STEP 8: Set password for role authenticator 
 psql -q -U "${POSTGRES_USER}" -c "ALTER ROLE authenticator PASSWORD '$PGRST_PASSWORD';"

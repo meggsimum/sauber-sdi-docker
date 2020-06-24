@@ -16,7 +16,7 @@ ALTER DATABASE lubw_messstellen OWNER TO sauber_manager;
 CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
-ALTER DATABASE lubw_messstellen SET timescaledb.restoring='on';
+--ALTER DATABASE lubw_messstellen SET timescaledb.restoring='on';
 
 
 CREATE SCHEMA daten;
@@ -448,7 +448,8 @@ ALTER TABLE ONLY daten.tab_werte
 ALTER TABLE ONLY daten.tab_werte 
     ADD CONSTRAINT werte_hypertable_key PRIMARY KEY (idpk_werte,time_stamp);
 
-SELECT create_hypertable('daten.tab_werte', 'time_stamp');
-
+SELECT timescaledb_post_restore();
 ALTER DATABASE lubw_messstellen SET timescaledb.restoring='off';
-\c postgres;
+ALTER DATABASE lubw_messstellen SET timescaledb.telemetry_level='off';
+
+SELECT create_hypertable('daten.tab_werte', 'time_stamp');
