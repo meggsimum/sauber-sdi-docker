@@ -171,8 +171,8 @@ services:
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - PGRST_DB_SERVER=db
             - PGRST_DB_PORT=5432
-            - PGRST_DB_NAME=raster_data
-            - PGRST_DB_SCHEMA=image_mosaic
+            - PGRST_DB_NAME=sauber_data
+            - PGRST_DB_SCHEMA=image_mosaics
             - PGRST_DB_ANON_ROLE=anon
         deploy:
             restart_policy:
