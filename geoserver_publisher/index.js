@@ -13,7 +13,7 @@ const postgRestUser = '';
 const postgRestPw = '';
 
 const rasterMetaTable = 'raster_metadata';
-const dataBasePath = '/opt/raster_data/';
+const dataBasePath = '';
 
 const geoserverUrl = 'http://localhost:8080/geoserver/rest/';
 const geoserverUser = 'admin';
@@ -105,9 +105,9 @@ async function getUnpublishedRasters() {
 async function addRasterToGeoServer(rasterMetaInf) {
   verboseLogging('Adding raster to GeoServer mosaic ...');
 
-  const ws = 'imagemosaic_test';
-  const covStore = 'nrw_no2';
-  const imgMosaic = 'nrw_no2_mosaic';
+  const ws = 'sauber-sdi';
+  const covStore = 'nrw_pm10_gm1h24h_mosaic';
+  const imgMosaic = 'nrw_pm10_gm1h24h_mosaic';
 
   if (verbose) {
     const granulesBefore = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
@@ -141,12 +141,16 @@ async function addRasterToGeoServer(rasterMetaInf) {
 async function markRastersPublished(rasterMetaInf) {
   verboseLogging('Mark raster', rasterMetaInf.rel_path ,'as published ...');
 
+  // add trailing '/' if necessary
+  const pgrstUrl = postgRestUrl.endsWith('/') ? postgRestUrl : postgRestUrl + '/';
+
   try {
     const rasterDbId = rasterMetaInf.idpk_image;
     const body = {
       "is_published": 1
     };
-    const url = postgRestUrl + rasterMetaTable + '?idpk_image=eq.' + rasterDbId;
+    const url = pgrstUrl + rasterMetaTable + '?idpk_image=eq.' + rasterDbId;
+
     // const auth = getPostgRestAuth();
 
     const response = await fetch(url, {
