@@ -15,7 +15,7 @@ const postgRestPw = '';
 const rasterMetaTable = 'raster_metadata';
 const dataBasePath = '/opt/raster_data/';
 
-const geoserverUrl = 'http://localhost:8080/geoserver';
+const geoserverUrl = 'http://localhost:8080/geoserver/rest/';
 const geoserverUser = 'admin';
 const geoserverPw = 'geoserver';
 
@@ -105,19 +105,26 @@ async function getUnpublishedRasters() {
 async function addRasterToGeoServer(rasterMetaInf) {
   verboseLogging('Adding raster to GeoServer mosaic ...');
 
+  const ws = 'imagemosaic_test';
+  const covStore = 'nrw_no2';
+  const imgMosaic = 'nrw_no2_mosaic';
+
   if (verbose) {
-    const granulesBefore = await grc.imagemosaics.getCoverages('imagemosaic_test', 'nrw_no2', 'nrw_no2_mosaic');
+    const granulesBefore = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
+    if (!granulesBefore) {
+      exitWithErrMsg('Could not load granules for ' + ws + ' | ' + covStore + ' | ' + imgMosaic + ' - ABORT!');
+    }
     verboseLogging('Having', granulesBefore.features.length, 'granules before adding');
   }
 
   // add granule by GeoServer REST API
   const coverageToAdd = 'file://' + dataBasePath + rasterMetaInf.rel_path;
   verboseLogging('Try to add Granule', coverageToAdd);
-  const added = await grc.imagemosaics.addGranuleByServerFile('imagemosaic_test', 'nrw_no2', coverageToAdd);
+  const added = await grc.imagemosaics.addGranuleByServerFile(ws, covStore, coverageToAdd);
   verboseLogging('Added granule by server file', added);
 
   if (verbose) {
-    const granulesAfter = await grc.imagemosaics.getCoverages('imagemosaic_test', 'nrw_no2', 'nrw_no2_mosaic');
+    const granulesAfter = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
     verboseLogging('Having', granulesAfter.features.length, 'granules after adding');
   }
 
@@ -210,13 +217,22 @@ function framedMediumLogging(msg) {
   console.log();
 }
 
+/**
+ *
+ * @param {String} msg
+ */
+function exitWithErrMsg(msg) {
+  framedMediumLogging(msg);
+  process.exit(1);
+}
+
 // check if we can connect to GeoServer REST API
 const grc = new GeoServerRestClient(geoserverUrl, geoserverUser, geoserverPw);
 grc.exists().then(gsExists => {
-  if (gsExists !== true) {
-    framedMediumLogging('Could not connect to GeoServer REST API - ABORT!');
-    process.exit(1);
+  if (gsExists === true) {
+    // start publishing process
+    publishRasters();
+  } else {
+    exitWithErrMsg('Could not connect to GeoServer REST API - ABORT!');
   }
 });
-
-publishRasters();
