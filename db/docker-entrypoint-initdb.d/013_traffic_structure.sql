@@ -14,7 +14,7 @@ CREATE DATABASE here WITH TEMPLATE = template1;
 CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
-ALTER DATABASE lubw_messstellen SET timescaledb.restoring='on';
+--ALTER DATABASE lubw_messstellen SET timescaledb.restoring='on';
 
 CREATE SCHEMA here_traffic;
 CREATE SCHEMA temp_import;
@@ -2673,9 +2673,8 @@ GRANT SELECT, USAGE
 GRANT EXECUTE
   ON FUNCTION here_traffic.insert_traffic() TO sauber_user;
 
-
+SELECT timescaledb_post_restore();
+ALTER DATABASE here SET timescaledb.restoring='off';
+ALTER DATABASE here SET timescaledb.telemetry_level='off';
 
 SELECT create_hypertable('here_traffic.car_60minuten', 'datum_zeit');
-
-ALTER DATABASE here SET timescaledb.restoring='off';
-\c postgres;
