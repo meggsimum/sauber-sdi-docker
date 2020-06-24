@@ -8,14 +8,14 @@ import GeoServerRestClient from 'geoserver-node-client';
 
 const verbose = true;
 
-const postgRestUrl = 'foo';
-const postgRestUser = 'TODO';
-const postgRestPw = 'TODO';
+const postgRestUrl = 'http://localhost:3000';
+const postgRestUser = '';
+const postgRestPw = '';
 
-const rasterMetaTable = 'tab_log';
+const rasterMetaTable = 'raster_metadata';
 const dataBasePath = '/opt/raster_data/';
 
-const geoserverUrl = 'bar';
+const geoserverUrl = 'http://localhost:8080/geoserver';
 const geoserverUser = 'admin';
 const geoserverPw = 'geoserver';
 
