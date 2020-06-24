@@ -3,12 +3,12 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.meggsimum.sauber</groupId>
-	<artifactId>raster-download</artifactId>
+	<artifactId>json-download</artifactId>
 	<version>0.0.1</version>
 	<packaging>jar</packaging>
 
 	<build>
-		<finalName>raster-download</finalName>
+		<finalName>json-download</finalName>
 
 		<plugins>
 
@@ -25,7 +25,7 @@
 							<archive>
 								<manifest>
 									<mainClass>
-										de.meggsimum.sauber.sdi.RasterDownloaderApp
+										de.meggsimum.sauber.sdi.JSONDownloaderApp
 									</mainClass>
 								</manifest>
 							</archive>
@@ -61,20 +61,6 @@
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20190722</version>
-		</dependency>
-
-		<!-- TIFF extensio for ImageIO -->
-		<dependency>
-			<groupId>com.twelvemonkeys.imageio</groupId>
-			<artifactId>imageio-tiff</artifactId>
-			<version>3.4.2</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
-		<dependency>
-		    <groupId>commons-codec</groupId>
-		    <artifactId>commons-codec</artifactId>
-		    <version>1.14</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/commons-io/commons-io -->

@@ -6,7 +6,7 @@ package de.meggsimum.sauber.sdi;
 /**
  * @author C. Mayer, meggsimum
  */
-public class RasterDownloaderApp {
+public class JSONDownloaderApp {
 
 	/**
 	 * @param args
@@ -23,12 +23,11 @@ public class RasterDownloaderApp {
 		String channel = "HeartbeatChannel";
 
 		// Create an instance for this class
-		RasterDownloader mySelf = new RasterDownloader();
+		JSONDownloader mySelf = new JSONDownloader();
 
 		// Subscribe to the channel specified
-		while (true) {
 		mySelf.subscribe(umUrl, channel);
-		}
+
 	}
 
 }
