@@ -317,7 +317,7 @@ public class JSONDownloader implements nEventListener {
 		//read payload from stored json file 
 		//add as pgobject for statement
 		Path filePath = Paths.get(filePathString);
-		String payloadString = Files.readString(filePath);
+		String payloadString = new String(Files.readAllBytes(filePath));	
 		PGobject payloadObject = new PGobject();
 		payloadObject.setType("jsonb");
 		payloadObject.setValue(payloadString);
