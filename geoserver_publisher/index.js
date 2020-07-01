@@ -5,6 +5,7 @@
  */
 import fetch from 'node-fetch';
 import GeoServerRestClient from 'geoserver-node-client';
+import {framedBigLogging, framedMediumLogging, verboseLogging} from './js-utils/logging.js';
 
 const verbose = true;
 
@@ -185,41 +186,6 @@ async function markRastersPublished(rasterMetaInf) {
  */
 function getPostgRestAuth() {
   return Buffer.from(postgRestUser + ':' + postgRestPw).toString('base64');
-}
-
-/**
- * Logs the given message, when `verbose` flag is set to true.
- *
- * @param {*} msg
- */
-function verboseLogging(msg) {
-  if (verbose) {
-    console.log.apply(console, arguments);
-  }
-}
-
-/**
- * Logs message embedded in a big frame.
- *
- * @param {String} msg
- */
-function framedBigLogging(msg) {
-  console.log('##############################################################');
-  console.log(msg);
-  console.log('##############################################################');
-  console.log();
-}
-
-/**
- * Logs message embedded in a medium frame.
- *
- * @param {String} msg
- */
-function framedMediumLogging(msg) {
-  console.log('--------------------------------------------------------------');
-  console.log(msg);
-  console.log('--------------------------------------------------------------');
-  console.log();
 }
 
 /**

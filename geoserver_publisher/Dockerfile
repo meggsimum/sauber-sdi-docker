@@ -2,6 +2,7 @@ FROM node:14-alpine3.12
 LABEL maintainer="chris@meggsimum.de"
 
 COPY  /package.json /opt/package.json
+COPY  /js-utils/logging.js /opt/js-utils/logging.js
 COPY  /index.js /opt/index.js
 
 WORKDIR /opt
