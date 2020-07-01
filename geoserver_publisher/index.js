@@ -7,18 +7,17 @@ import fetch from 'node-fetch';
 import GeoServerRestClient from 'geoserver-node-client';
 import {framedBigLogging, framedMediumLogging, verboseLogging} from './js-utils/logging.js';
 
-const verbose = true;
+const verbose = process.env.GSPUB_VERBOSE;
 
-const postgRestUrl = 'http://localhost:3000';
-const postgRestUser = '';
-const postgRestPw = '';
+const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://localhost:3000';
+const postgRestUser = process.env.GSPUB_PG_REST_USER;
+const postgRestPw = process.env.GSPUB_PG_REST_PW;
 
-const rasterMetaTable = 'raster_metadata';
-const dataBasePath = '';
+const rasterMetaTable = process.env.GSPUB_RASTER_META_TBL || 'raster_metadata';
 
-const geoserverUrl = 'http://localhost:8080/geoserver/rest/';
-const geoserverUser = 'admin';
-const geoserverPw = 'geoserver';
+const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://localhost:8080/geoserver/rest/';
+const geoserverUser = process.env.GSPUB_GS_REST_USER || 'admin';
+const geoserverPw = process.env.GSPUB_GS_REST_PW || 'geoserver';
 
 /**
  * Main process:
@@ -120,7 +119,7 @@ async function addRasterToGeoServer(rasterMetaInf) {
   }
 
   // add granule by GeoServer REST API
-  const coverageToAdd = 'file://' + dataBasePath + rasterMetaInf.image_path;
+  const coverageToAdd = 'file://' + rasterMetaInf.image_path;
   verboseLogging('Try to add Granule', coverageToAdd);
   const added = await grc.imagemosaics.addGranuleByServerFile(ws, covStore, coverageToAdd);
   verboseLogging('Added granule by server file', added);
