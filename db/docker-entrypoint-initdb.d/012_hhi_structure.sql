@@ -28,8 +28,7 @@ CREATE TABLE IF NOT EXISTS image_mosaics.raster_metadata (
 	CONSTRAINT raster_metadata_chk CHECK ((is_published = ANY (ARRAY[0, 1]))),
 	CONSTRAINT raster_metadata_pkey PRIMARY KEY (idpk_image)
 );
-
-
+ALTER TABLE image_mosaics.raster_metadata OWNER TO sauber_manager;
 
 CREATE SCHEMA IF NOT EXISTS station_data;
 CREATE EXTENSION IF NOT EXISTS postgis;

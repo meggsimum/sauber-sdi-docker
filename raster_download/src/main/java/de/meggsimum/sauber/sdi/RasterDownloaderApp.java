@@ -3,6 +3,8 @@
  */
 package de.meggsimum.sauber.sdi;
 
+import java.io.IOException;
+
 /**
  * @author C. Mayer, meggsimum
  */
@@ -23,11 +25,22 @@ public class RasterDownloaderApp {
 		String channel = "HeartbeatChannel";
 
 		// Create an instance for this class
-		RasterDownloader mySelf = new RasterDownloader();
+		RasterDownloader mySelf = null;
+		try {
+			mySelf = new RasterDownloader();
+		} catch (IOException ioe) {
+//			ioe.printStackTrace();
+			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.exit(-1);
+		} catch (Exception e) {
+			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.exit(-1);
+		}
 
 		// Subscribe to the channel specified
-		mySelf.subscribe(umUrl, channel);
-
+		while (true) {
+			mySelf.subscribe(umUrl, channel);
+		}
 	}
 
 }
