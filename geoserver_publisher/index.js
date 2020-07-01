@@ -6,18 +6,19 @@
 import fetch from 'node-fetch';
 import GeoServerRestClient from 'geoserver-node-client';
 import {framedBigLogging, framedMediumLogging, verboseLogging} from './js-utils/logging.js';
+import dockerSecret from './js-utils/docker-secrets.js';
 
 const verbose = process.env.GSPUB_VERBOSE;
 
 const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://localhost:3000';
 const postgRestUser = process.env.GSPUB_PG_REST_USER;
-const postgRestPw = process.env.GSPUB_PG_REST_PW;
+const postgRestPw = dockerSecret.read('pgrst_password.txt') || process.env.GSPUB_PG_REST_PW;
 
 const rasterMetaTable = process.env.GSPUB_RASTER_META_TBL || 'raster_metadata';
 
 const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://localhost:8080/geoserver/rest/';
-const geoserverUser = process.env.GSPUB_GS_REST_USER || 'admin';
-const geoserverPw = process.env.GSPUB_GS_REST_PW || 'geoserver';
+const geoserverUser = dockerSecret.read('geoserver_user.txt') || process.env.GSPUB_GS_REST_USER;
+const geoserverPw = dockerSecret.read('geoserver_password.txt') || process.env.GSPUB_GS_REST_PW;
 
 /**
  * Main process:

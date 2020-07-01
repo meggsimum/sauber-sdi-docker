@@ -173,16 +173,14 @@ services:
       image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
       networks:
           - sauber-network
-      #secrets:
-      #    - postgrest_jwt_secret
-      #    - postgrest_password
+      secrets:
+          - postgrest_password
+          - geoserver_user
+          - geoserver_password
       environment:
           - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
           - GSPUB_PG_REST_USER=anon
-          - GSPUB_PG_REST_PW=
           - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
-          - GSPUB_GS_REST_USER=admin
-          - GSPUB_GS_REST_PW=geoserver
       deploy:
           restart_policy:
             condition: on-failure
