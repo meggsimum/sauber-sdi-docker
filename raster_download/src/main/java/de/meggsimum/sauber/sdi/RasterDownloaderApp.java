@@ -17,12 +17,11 @@ public class RasterDownloaderApp {
 
 		// Universal Messaging protocol, server address and port
 		String umServer = System.getenv("umserver");
+		String umChannel = System.getenv("umchannel");
 
 		System.out.println("Connecting to UM server: " + umServer);
 
 		String[] umUrl = { "nsp://" + umServer };
-		// Name of the channel where the event should be published
-		String channel = "HeartbeatChannel";
 
 		// Create an instance for this class
 		RasterDownloader mySelf = null;
@@ -39,7 +38,7 @@ public class RasterDownloaderApp {
 
 		// Subscribe to the channel specified
 		while (true) {
-			mySelf.subscribe(umUrl, channel);
+			mySelf.subscribe(umUrl, umChannel);
 		}
 	}
 
