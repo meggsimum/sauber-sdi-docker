@@ -103,59 +103,6 @@ services:
         ports:
             - "8080:8080"
 
-
-    # postgrest_lubw:
-    #     image: "sauber_postgrest:latest"
-    #     networks:
-    #         - network
-    #     secrets:
-    #         - postgrest_jwt_secret
-    #         - postgrest_password
-    #     environment:
-    #         - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
-    #         - PGRST_USER=authenticator
-    #         - PGRST_DB_POOL=5
-    #         - PGRST_MAX_ROWS=100
-    #         - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
-    #         - PGRST_DB_SERVER=db
-    #         - PGRST_DB_PORT=5432
-    #         - PGRST_DB_NAME=lubw_messstellen
-    #         - PGRST_DB_SCHEMA=daten
-    #         - PGRST_DB_ANON_ROLE=anon
-    #     deploy:
-    #         restart_policy:
-    #          condition: on-failure
-    #     depends_on:
-    #         - db
-    #     ports:
-    #         - "3001:3000"
-
-    # postgrest_here:
-    #     image: "sauber_postgrest:latest"
-    #     networks:
-    #         - sauber-network
-    #     secrets:
-    #         - postgrest_jwt_secret
-    #         - postgrest_password
-    #     environment:
-    #         - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
-    #         - PGRST_USER=authenticator
-    #         - PGRST_DB_POOL=5
-    #         - PGRST_MAX_ROWS=100
-    #         - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
-    #         - PGRST_DB_SERVER=db
-    #         - PGRST_DB_PORT=5432
-    #         - PGRST_DB_NAME=here
-    #         - PGRST_DB_SCHEMA=here_traffic
-    #         - PGRST_DB_ANON_ROLE=anon
-    #     deploy:
-    #         restart_policy:
-    #          condition: on-failure
-    #     depends_on:
-    #         - db
-    #     ports:
-    #         - "3002:3000"
-
     postgrest_raster_publisher:
         image: "sauberprojekt/postgrest:20200701_1"
         networks:
@@ -221,15 +168,6 @@ services:
     #     tty:
     #         true  #Keep Container alive, else completes and shuts down
     #
-
-    traffic-demo-client:
-        image: chrismayer8/traffic-webgis
-        networks:
-            - sauber-network
-        ports:
-            - "9000:80"
-        depends_on:
-            - geoserver
 
     um-ol-demo:
         image: sauberprojekt/um_ol_demo:20200701_1
