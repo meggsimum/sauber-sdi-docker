@@ -7,14 +7,13 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -28,12 +27,10 @@ import java.util.Properties;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
-import org.json.JSONString;
 import org.postgresql.util.PGobject;
 
-import com.pcbsys.foundation.filters.fEventStringRule;
-import com.pcbsys.foundation.system.memory.fPage.type;
 import com.pcbsys.nirvana.client.nChannel;
 import com.pcbsys.nirvana.client.nChannelAlreadyExistsException;
 import com.pcbsys.nirvana.client.nChannelAttributes;
@@ -54,19 +51,12 @@ import com.pcbsys.nirvana.client.nSessionFactory;
 public class RasterDownloader implements nEventListener {
 
 	/** */
-	
-	//TODO inject, read from docker secrets
-	static final String user = "SauberPartner";
-	
-	static final String pw = "";
-	
-	
 	private static JSONObject evtData = new JSONObject();
-	
+
 	private static String evtPollutant = "";
-	
+
 	private static String evtRegion = "";
-	
+
 	private static final int HTTP_TIMEOUT = 10000;
 
 	private static final Map<String, String> mappingFormatEnding = new HashMap<String, String>() {
@@ -87,6 +77,58 @@ public class RasterDownloader implements nEventListener {
 
 	/** */
 	private nChannel myChannel;
+
+	// read from docker secrets in constructor
+	private String hhiRestUser = null;
+	private String hhiRestPw = null;
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	public RasterDownloader() throws Exception {
+		this.resolveSecrets();
+	}
+
+	/**
+	 * 
+	 * @throws Exception
+	 */
+	public void resolveSecrets() throws Exception {
+		String workingDir = System.getProperty("user.dir");
+		File secretFileUsrCtn = new File("/run/secrets/hhi-rest-user.txt");
+		File secretFileUsrLoc = new File(workingDir + "/../secrets/hhi-rest-user.txt");
+
+		// load HHI REST user from docker secret or use local dev file as backup
+		if (secretFileUsrCtn.exists()) {
+			InputStream fis = new FileInputStream(secretFileUsrCtn);
+			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
+		} else if (secretFileUsrLoc.exists()) {
+			System.out.println("Using local backup secret at " + secretFileUsrLoc.getAbsolutePath());
+			InputStream fis = new FileInputStream(secretFileUsrLoc);
+			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
+		} else {
+			throw new FileNotFoundException("Not able not load user from secrets");
+		}
+
+		// load HHI REST password from docker secret or use local dev file as backup
+		File secretFilePwCtn = new File("/run/secrets/hhi-rest-pw.txt");
+		File secretFilePwLoc = new File(workingDir + "/../secrets/hhi-rest-pw.txt");
+		if (secretFilePwCtn.exists()) {
+			InputStream fis = new FileInputStream(secretFilePwCtn);
+			this.hhiRestPw = IOUtils.toString(fis, "UTF-8");
+		} else if (secretFilePwLoc.exists()) {
+			System.out.println("Using local backup secret at " + secretFilePwLoc.getAbsolutePath());
+			InputStream fis = new FileInputStream(secretFilePwLoc);
+			this.hhiRestPw = IOUtils.toString(fis, "UTF-8");
+		} else {
+			throw new FileNotFoundException("Not able not load password from secrets");
+		}
+
+		//TODO remove
+		System.out.println(this.hhiRestUser);
+		System.out.println(this.hhiRestPw);
+	}
 
 	/**
 	 * Connects to the given Universal Messaging realms and channel. Then listens
@@ -176,37 +218,37 @@ public class RasterDownloader implements nEventListener {
 
 		if (prop.get("source").equals("hhi")) {
 
-			// parse incoming message 
-		
+			// parse incoming message
+
 			//TODO tmp example message
 			evtData = new JSONObject("{\"category\": \"raster-forecast\", \"source\": \"hhi\", \"payload\": {\"url\":\"https://www.geomer.de/dltemp/nrw_2020010109.tif\", \"predictionStartTime\": 1578240000, \"region\": \"NRW\", \"interval\": 3600, \"creationTime\": 1590573111, \"stationId\": \"WESE\", \"predictionEndTime\": 1578412800, \"type\": \"PM10_GM1H24H\", \"unit\": \"microgm-3\"}, \"timestamp\": 1591686245}");
 			//JSONObject evtData = new JSONObject(new String(evt.getEventData()));
 
-			String category = evtData.getString("category");			
+			String category = evtData.getString("category");
 
 			Long time_stamp = evtData.getLong("timestamp"); //get timestamp and convert to format readable by geoserver regex
 			SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
 			String readableTime = format.format(time_stamp*1000);
-			
-			JSONObject payload = evtData.getJSONObject("payload");	
+
+			JSONObject payload = evtData.getJSONObject("payload");
 			String request = payload.getString("url");
 
 			evtRegion = payload.getString("region");
 			evtPollutant = payload.getString("type");
-			
+
 			String fileName = evtRegion.toLowerCase()+"_"+evtPollutant+"_"+readableTime;
-			
+
 			// TODO Check if there actually is "realtime" data
 			if (category.contains("forecast")) {
-				fileName = "fc_"+fileName;				
+				fileName = "fc_"+fileName;
 			} else if (category.contains("realtime")) {
-				fileName = "rt_"+fileName;				
+				fileName = "rt_"+fileName;
 			} else {
 				System.out.println("Error: Could not determine if real time / forecast");
 				System.exit(1);
 			}
-			
-	
+
+
 			System.out.println("URL to raster to download: " + request);
 
 			// TODO whitelist request URLs
@@ -264,8 +306,8 @@ public class RasterDownloader implements nEventListener {
 	//private File downloadRaster(String request) throws IOException {
 	private void downloadRaster(String request, String fileName) throws IOException {
 		URL url = new URL(request);
-		String authStr = user + ":" + pw;
-	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());		
+		String authStr = this.hhiRestUser + ":" + this.hhiRestPw;
+	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.setRequestMethod("GET");
 		con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
@@ -280,7 +322,7 @@ public class RasterDownloader implements nEventListener {
 
 			InputStream is = con.getInputStream();
 			BufferedImage buffImage = ImageIO.read(is);
-	
+
 			// write to tmp. location
 			String contentType = con.getContentType();
 			String fileEnding = RasterDownloader.mappingFormatEnding.get(contentType);
@@ -289,32 +331,32 @@ public class RasterDownloader implements nEventListener {
 			String outDir = "/opt/raster_data/"+ evtRegion.toLowerCase() +"/"+ evtPollutant.toLowerCase() +"/";
 
 			String filePathStr = outDir + fileName +"."+ fileEnding;
-			
+
 			File imgFile = new File(filePathStr);
-			imgFile.getParentFile().mkdirs(); 
+			imgFile.getParentFile().mkdirs();
 			imgFile.createNewFile();
-			
+
 			ImageIO.write(buffImage, fileEnding, imgFile);
-		
+
 			System.out.println("Raster saved at " + imgFile.getAbsolutePath());
-			
+
 			is.close();
-			
+
 			try {
 				insertRaster(fileName,filePathStr);  // insert raster into database via raster2pgsql
 			} catch (IOException e) {
 				System.out.println("Error inserting raster into DB");
 				e.printStackTrace();
 			}
-				
+
 			try {
 				insertMetadata(filePathStr); // insert raster metadata into db
 			} catch (SQLException e) {
 				System.out.println("Error inserting raster metadata into DB");
 				e.printStackTrace();
 			}
-			
-			
+
+
 		} else if (status == 401) {
 				System.out.println("Connection to server unauthorized. Check credentials");
 				System.exit(1);
@@ -322,17 +364,17 @@ public class RasterDownloader implements nEventListener {
 			System.out.println("Connection to server failed with HTTP status "+status+". Check connection.");
 			System.exit(1);
 		}
-			
+
 		//return //imgFile;
 		return;
 	}
-	
-	
+
+
 	private void insertRaster(String fileName, String filePathStr) throws IOException {
-		
-		
+
+
 		//declutter process builder args
-		String raster2pgsql = "/usr/local/bin/raster2pgsql"; 
+		String raster2pgsql = "/usr/local/bin/raster2pgsql";
 		String psql = "/usr/local/bin/psql";
 		String schemaName = evtRegion.toLowerCase() +"_"+ evtPollutant.toLowerCase();
 		String targetTable = schemaName +"."+ fileName;
@@ -342,7 +384,7 @@ public class RasterDownloader implements nEventListener {
 				//TODO verify r2pg is called in local win env. Delete below.
 				new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -G");
 	    Process p = pb.start();
-	    
+
 	    //TODO Ouput for r2pg debug convenience. Delete below.
 	    BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
 	    String line;
@@ -354,45 +396,45 @@ public class RasterDownloader implements nEventListener {
 	        System.out.println("raster2pgsql: " + line);
 	    }
 	}
-	
+
 	public void insertMetadata(String filePathStr) throws SQLException, IOException {
-		
+
 		//setup db connection
 		// TODO JK: inject/read params from docker secrets, e.g. host/port/db
-		String url = "jdbc:postgresql://localhost:5430/sauber_data"; 
+		String url = "jdbc:postgresql://localhost:5430/sauber_data";
 		Properties props = new Properties();
 		props.setProperty("user","postgres");
 		props.setProperty("password","postgres");
 		props.setProperty("ssl","false");
 		Connection conn = DriverManager.getConnection(url, props);
 		conn.setAutoCommit(false);
-		
-		//gather info to fill statement for raster metadata table 
+
+		//gather info to fill statement for raster metadata table
 		String JSONString = evtData.toString();
 		String workspace = "image_mosaics";
 		String coverageName = evtRegion.toLowerCase() +"_"+ evtPollutant.toLowerCase();
-		String mosaicName = coverageName +"_mosaic";		
-				
+		String mosaicName = coverageName +"_mosaic";
+
 		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO image_mosaics.raster_metadata (image_path, source_payload, workspace, coverage_store, image_mosaic, is_published) VALUES(?, ?, ?, ?, ?, ?)");
-		
+
 		PGobject jsonObject = new PGobject();
 		jsonObject.setType("jsonb");
 		jsonObject.setValue(JSONString);
-		inputStmt.setString(1, filePathStr);	
-		inputStmt.setObject(2, jsonObject);		
+		inputStmt.setString(1, filePathStr);
+		inputStmt.setObject(2, jsonObject);
 		inputStmt.setObject(3, workspace);
 		inputStmt.setObject(4, coverageName);
 		inputStmt.setString(5, mosaicName);	// TODO complete pollutant name (PM10_GM241H) etc?
 		inputStmt.setInt(6, 0);
-		
-		// execute statement 
+
+		// execute statement
 		int insertReturn = inputStmt.executeUpdate();
-	
+
 		//check if == 1 line was inserted as expected
 		if (insertReturn == 1) {
 			conn.commit();
 			inputStmt.close();
-		} else 
+		} else
 			System.out.println("Error: "+insertReturn+" rows inserted");
 			System.exit(1);
 }
