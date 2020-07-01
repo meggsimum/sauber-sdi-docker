@@ -105,9 +105,10 @@ async function getUnpublishedRasters() {
 async function addRasterToGeoServer(rasterMetaInf) {
   verboseLogging('Adding raster to GeoServer mosaic ...');
 
-  const ws = 'sauber-sdi';
-  const covStore = 'nrw_pm10_gm1h24h_mosaic';
-  const imgMosaic = 'nrw_pm10_gm1h24h_mosaic';
+  // TODO remove defaults
+  const ws = rasterMetaInf.workspace || 'sauber-sdi';
+  const covStore = rasterMetaInf.coverage_store || 'nrw_pm10_gm1h24h_mosaic';
+  const imgMosaic = rasterMetaInf.image_mosaic || 'nrw_pm10_gm1h24h_mosaic';
 
   if (verbose) {
     const granulesBefore = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
@@ -118,7 +119,7 @@ async function addRasterToGeoServer(rasterMetaInf) {
   }
 
   // add granule by GeoServer REST API
-  const coverageToAdd = 'file://' + dataBasePath + rasterMetaInf.rel_path;
+  const coverageToAdd = 'file://' + dataBasePath + rasterMetaInf.image_path;
   verboseLogging('Try to add Granule', coverageToAdd);
   const added = await grc.imagemosaics.addGranuleByServerFile(ws, covStore, coverageToAdd);
   verboseLogging('Added granule by server file', added);
@@ -128,7 +129,7 @@ async function addRasterToGeoServer(rasterMetaInf) {
     verboseLogging('Having', granulesAfter.features.length, 'granules after adding');
   }
 
-  console.info('Added granule', rasterMetaInf.rel_path, 'in GeoServer mosaic', rasterMetaInf.name_mosaic);
+  console.info('Added granule', rasterMetaInf.image_path, 'in GeoServer mosaic', rasterMetaInf.name_mosaic);
 
   return added;
 }
@@ -139,7 +140,7 @@ async function addRasterToGeoServer(rasterMetaInf) {
  * @param {Object} rasterMetaInf
  */
 async function markRastersPublished(rasterMetaInf) {
-  verboseLogging('Mark raster', rasterMetaInf.rel_path ,'as published ...');
+  verboseLogging('Mark raster', rasterMetaInf.image_path ,'as published ...');
 
   // add trailing '/' if necessary
   const pgrstUrl = postgRestUrl.endsWith('/') ? postgRestUrl : postgRestUrl + '/';
@@ -170,7 +171,7 @@ async function markRastersPublished(rasterMetaInf) {
       console.warn('Failed to mark raster as published in DB', respText);
       console.warn('It is very likely that your raster meta info DB is out of sync with GeoServer!');
     } else {
-      console.info('Marked raster', rasterMetaInf.rel_path ,'as published in DB');
+      console.info('Marked raster', rasterMetaInf.image_path ,'as published in DB');
     }
 
   } catch (error) {
