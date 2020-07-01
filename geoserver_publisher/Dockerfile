@@ -5,6 +5,10 @@ COPY  /package.json /opt/package.json
 COPY  /js-utils/logging.js /opt/js-utils/logging.js
 COPY  /index.js /opt/index.js
 
+# install git to resolve git based dependency in package.json
+RUN apk add --no-cache git
+RUN git --version
+
 WORKDIR /opt
 RUN npm install --only=production
 

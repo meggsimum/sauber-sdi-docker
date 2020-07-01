@@ -17,7 +17,7 @@
   "author": "C. Mayer (meggsimum)",
   "license": "MIT",
   "dependencies": {
-    "geoserver-node-client": "chrismayer/geoserver-node-client#master",
+    "geoserver-node-client": "https://github.com/chrismayer/geoserver-node-client.git#master",
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
