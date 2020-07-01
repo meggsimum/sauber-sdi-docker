@@ -225,6 +225,8 @@ EOSQL
 psql -d sauber_data -q <<-'EOSQL'
     GRANT USAGE ON SCHEMA image_mosaics TO anon;
     GRANT SELECT ON image_mosaics.raster_metadata TO anon;
+    GRANT UPDATE TABLE image_mosaics.raster_metadata TO anon;
+    GRANT ALL ON TABLE image_mosaics.raster_metadata TO sauber_manager;
     GRANT INSERT, UPDATE (is_published) ON image_mosaics.raster_metadata TO anon;
     GRANT USAGE ON SCHEMA station_data TO anon;
     GRANT SELECT ON station_data.raw_input TO anon;

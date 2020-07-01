@@ -26,8 +26,9 @@ public class RasterDownloaderApp {
 		RasterDownloader mySelf = new RasterDownloader();
 
 		// Subscribe to the channel specified
+		while (true) {
 		mySelf.subscribe(umUrl, channel);
-
+		}
 	}
 
 }
