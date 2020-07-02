@@ -3,6 +3,8 @@
  */
 package de.meggsimum.sauber.sdi;
 
+import java.io.IOException;
+
 /**
  * @author C. Mayer, meggsimum
  */
@@ -15,19 +17,29 @@ public class RasterDownloaderApp {
 
 		// Universal Messaging protocol, server address and port
 		String umServer = System.getenv("umserver");
+		String umChannel = System.getenv("umchannel");
 
 		System.out.println("Connecting to UM server: " + umServer);
 
 		String[] umUrl = { "nsp://" + umServer };
-		// Name of the channel where the event should be published
-		String channel = "HeartbeatChannel";
 
 		// Create an instance for this class
-		RasterDownloader mySelf = new RasterDownloader();
+		RasterDownloader mySelf = null;
+		try {
+			mySelf = new RasterDownloader();
+		} catch (IOException ioe) {
+//			ioe.printStackTrace();
+			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.exit(-1);
+		} catch (Exception e) {
+			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.exit(-1);
+		}
 
 		// Subscribe to the channel specified
-		mySelf.subscribe(umUrl, channel);
-
+		while (true) {
+			mySelf.subscribe(umUrl, umChannel);
+		}
 	}
 
 }
