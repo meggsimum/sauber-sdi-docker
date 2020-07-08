@@ -28,6 +28,9 @@ verboseLogging('GeoServer REST URL: ', geoserverUrl);
 verboseLogging('GeoServer REST User:', geoserverUser);
 verboseLogging('GeoServer REST PW:  ', geoserverPw);
 
+// array with blacklisted (mostly non existing) CoverageStores
+const ignoreCovStores = [];
+
 /**
  * Main process:
  *  - Queries all unpublished rasters from DB
@@ -45,18 +48,47 @@ async function publishRasters() {
     process.exit(1);
   }
 
-  unpublishedRasters.forEach(rasterMetaInf => {
-    verboseLogging('publish raster', rasterMetaInf);
+  framedMediumLogging('Checking CoverageStores for existance');
 
-    // add raster to GeoServer mosaic and mark as published
-    addRasterToGeoServer(rasterMetaInf).then((success) => {
+  // check if given CoverageStores exists and blacklist them if not
+  await asyncForEach(unpublishedRasters, checkIfCoverageStoresExist);
+
+  framedMediumLogging('Publish rasters')
+
+  await asyncForEach(unpublishedRasters, async (rasterMetaInf) => {
+    verboseLogging('Publish raster', rasterMetaInf.image_path);
+
+    await addRasterToGeoServer(rasterMetaInf).then(async (success) => {
       if (success) {
-        markRastersPublished(rasterMetaInf);
+        await markRastersPublished(rasterMetaInf);
       } else {
-        console.warn('Could not add raster/granule "', rasterMetaInf.name_mosaic ,'" to GeoServer');
+        console.warn('Could not add raster/granule "', rasterMetaInf.image_path ,'" to store', rasterMetaInf.coverage_store);
       }
+      verboseLogging('-----------------------------------------------------\n');
     });
   });
+
+}
+
+/**
+ * Checks if GeoServer has the CoverageStore given in the raster meta info.
+ * If not it is added to the ignoreCovStores array so it can be ignored in the
+ * process.
+ *
+ * @param {Object} rasterMetaInf
+ */
+async function checkIfCoverageStoresExist(rasterMetaInf) {
+  const ws = rasterMetaInf.workspace;
+  const covStore = rasterMetaInf.coverage_store;
+
+  verboseLogging('Checking', covStore, 'if it exists in GeoServer');
+
+  const covStoreObj = await grc.datastores.getCoverageStore(ws, covStore);
+
+  if (!covStoreObj) {
+    console.error('CoverageStore', covStore, 'does not exist. Ensure this is created in advance.');
+    ignoreCovStores.push(covStore);
+  }
 }
 
 /**
@@ -112,33 +144,38 @@ async function getUnpublishedRasters() {
  * @param {Object} rasterMetaInf
  */
 async function addRasterToGeoServer(rasterMetaInf) {
-  verboseLogging('Adding raster to GeoServer mosaic ...');
+  verboseLogging('Adding raster to GeoServer mosaic ...', rasterMetaInf.image_path);
 
   // TODO remove defaults
   const ws = rasterMetaInf.workspace || 'sauber-sdi';
   const covStore = rasterMetaInf.coverage_store || 'nrw_pm10_gm1h24h_mosaic';
   const imgMosaic = rasterMetaInf.image_mosaic || 'nrw_pm10_gm1h24h_mosaic';
+  const rasterFile = rasterMetaInf.image_path;
+
+  // exit if coverage store does not exist
+  if (ignoreCovStores.includes(covStore)) {
+    return false;
+  }
 
   if (verbose) {
     const granulesBefore = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
-    if (!granulesBefore) {
-      exitWithErrMsg('Could not load granules for ' + ws + ' | ' + covStore + ' | ' + imgMosaic + ' - ABORT!');
+    if (granulesBefore && granulesBefore.features) {
+      verboseLogging('Having', granulesBefore.features.length, 'granules before adding', rasterFile);
     }
-    verboseLogging('Having', granulesBefore.features.length, 'granules before adding');
   }
 
-  // add granule by GeoServer REST API
-  const coverageToAdd = 'file://' + rasterMetaInf.image_path;
-  verboseLogging('Try to add Granule', coverageToAdd);
+  // // add granule by GeoServer REST API
+  const coverageToAdd = 'file://' + rasterFile;
+  verboseLogging('Try to add Granule ...', coverageToAdd);
   const added = await grc.imagemosaics.addGranuleByServerFile(ws, covStore, coverageToAdd);
-  verboseLogging('Added granule by server file', added);
+  verboseLogging('... Added granule by server file', added);
 
   if (verbose) {
     const granulesAfter = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
-    verboseLogging('Having', granulesAfter.features.length, 'granules after adding');
+    verboseLogging('Having', granulesAfter.features.length, 'granules after adding', rasterFile);
   }
 
-  console.info('Added granule', rasterMetaInf.image_path, 'in GeoServer mosaic', rasterMetaInf.name_mosaic);
+  console.info('Added granule', rasterFile, 'in GeoServer mosaic', imgMosaic);
 
   return added;
 }
@@ -186,6 +223,19 @@ async function markRastersPublished(rasterMetaInf) {
   } catch (error) {
     console.error(error);
     return false;
+  }
+}
+
+/**
+ * Helper to perform asynchronous forEach.
+ * Found at https://codeburst.io/javascript-async-await-with-foreach-b6ba62bbf404
+ *
+ * @param {*[]} array
+ * @param {Function} callback
+ */
+async function asyncForEach(array, callback) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
   }
 }
 
