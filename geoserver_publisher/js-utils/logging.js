@@ -1,15 +1,4 @@
 /**
- * Logs the given message, when `verbose` flag is set to true.
- *
- * @param {*} msg
- */
-export function verboseLogging(msg) {
-  if (verbose) {
-    console.log.apply(console, arguments);
-  }
-}
-
-/**
  * Logs message embedded in a big frame.
  *
  * @param {String} msg

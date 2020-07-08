@@ -5,20 +5,28 @@
  */
 import fetch from 'node-fetch';
 import GeoServerRestClient from 'geoserver-node-client';
-import {framedBigLogging, framedMediumLogging, verboseLogging} from './js-utils/logging.js';
+import {framedBigLogging, framedMediumLogging} from './js-utils/logging.js';
 import dockerSecret from './js-utils/docker-secrets.js';
 
 const verbose = process.env.GSPUB_VERBOSE;
 
-const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://localhost:3000';
+const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://postgrest_raster_publisher:3000';
 const postgRestUser = process.env.GSPUB_PG_REST_USER;
 const postgRestPw = dockerSecret.read('pgrst_password.txt') || process.env.GSPUB_PG_REST_PW;
 
+verboseLogging('PostgREST URL: ', postgRestUrl);
+verboseLogging('PostgREST User:', postgRestUser);
+verboseLogging('PostgREST PW:  ', postgRestPw);
+
 const rasterMetaTable = process.env.GSPUB_RASTER_META_TBL || 'raster_metadata';
 
-const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://localhost:8080/geoserver/rest/';
+const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://geoserver:8080/geoserver/rest/';
 const geoserverUser = dockerSecret.read('geoserver_user.txt') || process.env.GSPUB_GS_REST_USER;
 const geoserverPw = dockerSecret.read('geoserver_password.txt') || process.env.GSPUB_GS_REST_PW;
+
+verboseLogging('GeoServer REST URL: ', geoserverUrl);
+verboseLogging('GeoServer REST User:', geoserverUser);
+verboseLogging('GeoServer REST PW:  ', geoserverPw);
 
 /**
  * Main process:
@@ -195,6 +203,12 @@ function getPostgRestAuth() {
 function exitWithErrMsg(msg) {
   framedMediumLogging(msg);
   process.exit(1);
+}
+
+function verboseLogging(msg) {
+  if (verbose) {
+    console.log.apply(console, arguments);
+  }
 }
 
 // check if we can connect to GeoServer REST API
