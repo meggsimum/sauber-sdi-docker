@@ -169,6 +169,25 @@ services:
     #         true  #Keep Container alive, else completes and shuts down
     #
 
+    geoserver_raster_publisher:
+      image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
+      networks:
+          - sauber-network
+      secrets:
+          - postgrest_password
+          - geoserver_user
+          - geoserver_password
+      environment:
+          - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
+          - GSPUB_PG_REST_USER=anon
+          - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
+      deploy:
+          restart_policy:
+            condition: on-failure
+      depends_on:
+          - postgrest_raster_publisher
+          - geoserver
+
     um-ol-demo:
         image: sauberprojekt/um_ol_demo:20200701_1
         networks:

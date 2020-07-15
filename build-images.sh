@@ -16,6 +16,8 @@ docker build --rm -f "raster_download/Dockerfile" -t sauberprojekt/raster_downlo
 
 docker build --rm -f "postgrest/Dockerfile" -t sauberprojekt/postgrest:$IMG_VERSION "postgrest"
 
+docker build --rm -f "geoserver_publisher/Dockerfile" -t sauberprojekt/geoserver_raster_publisher:$IMG_VERSION "geoserver_publisher"
+
 docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauberprojekt/um_ol_demo:$IMG_VERSION "um_ol_demo"
 
 docker build --rm -f "um-js-demo-client/Dockerfile" -t sauberprojekt/um_js_demo:$IMG_VERSION "um-js-demo-client"
@@ -29,6 +31,8 @@ then
   docker push sauberprojekt/raster_download:$IMG_VERSION
 
   docker push sauberprojekt/postgrest:$IMG_VERSION
+
+  docker push sauberprojekt/geoserver_raster_publisher:$IMG_VERSION
 
   docker push sauberprojekt/um_ol_demo:$IMG_VERSION
 
