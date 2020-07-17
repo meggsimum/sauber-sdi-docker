@@ -22,6 +22,8 @@ docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauberprojekt/um_ol_demo:
 
 docker build --rm -f "um-js-demo-client/Dockerfile" -t sauberprojekt/um_js_demo:$IMG_VERSION "um-js-demo-client"
 
+docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$IMG_VERSION "test_messenger"
+
 if [ $PUSH_TO_HUB -eq 1 ]
 then
   echo "Push images to hub.docker"
