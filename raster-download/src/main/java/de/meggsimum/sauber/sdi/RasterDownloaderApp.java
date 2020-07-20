@@ -29,7 +29,7 @@ public class RasterDownloaderApp {
 			mySelf = new RasterDownloader();
 		} catch (IOException ioe) {
 //			ioe.printStackTrace();
-			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.out.println("Error while resolving secret files for RasterDownloader: "+ioe);
 			System.exit(-1);
 		} catch (Exception e) {
 			System.out.println("Error while resolving secret files for RasterDownloader");

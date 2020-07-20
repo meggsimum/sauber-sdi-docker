@@ -44,7 +44,13 @@ secrets:
         name: sauber_manager_password_v1
     postgres_init_password:
         file: ./secrets/postgres_init_password.txt
+        name: hhi_rest_user_v1
+    hhi_rest_user:
+        file: ./secrets/hhi_rest_user.txt
         name: postgres_init_password_v1
+    hhi_rest_pw:
+        file: ./secrets/hhi_rest_pw.txt
+        name: hhi_rest_pw_v1
 
 services:
 
@@ -129,6 +135,25 @@ services:
         ports:
             - "3000:3000"
 
+    geoserver_raster_publisher:
+      image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
+      networks:
+          - sauber-network
+      secrets:
+          - postgrest_password
+          - geoserver_user
+          - geoserver_password
+      environment:
+          - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
+          - GSPUB_PG_REST_USER=anon
+          - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
+      deploy:
+          restart_policy:
+            condition: on-failure
+      depends_on:
+          - postgrest_raster_publisher
+          - geoserver
+
     um_server:
         image: "store/softwareag/universalmessaging-server:10.5"
         networks:
@@ -148,33 +173,8 @@ services:
         ports:
             - "9876:9000"
 
-    # raster_downloader:
-    #     image: "sauberprojekt/raster_download:20200717_1"
-    #     networks:
-    #         - sauber-network
-    #     secrets:
-    #         - hhi_rest_password
-    #         - hhi_rest_user
-    #         - sauber_user_password
-    #     environment:
-    #         - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
-    #         - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
-    #         - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
-    #         - SAUBER_USER=sauber_user
-    #         - UM_SERVER=um_server:9000
-    #         - UM_CHANNEL=raster_data
-    #     deploy:
-    #         restart_policy:
-    #             condition: on-failure
-    #     depends_on:
-    #         - um_server
-    #     volumes:
-    #         - raster_data:/raster_data/:Z
-    #     tty:
-    #         true  #Keep Container alive, else completes and shuts down 
-    
     test_messenger:
-        image: "sauberprojekt/test_messenger:20200717_1"
+        image: "sauberprojekt/test_messenger:20200720_1"
         networks:
             - sauber-network
 #       secrets:
@@ -187,24 +187,31 @@ services:
         tty:
             true  #Keep Container alive, else completes and shuts down
 
-    geoserver_raster_publisher:
-      image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
-      networks:
-          - sauber-network
-      secrets:
-          - postgrest_password
-          - geoserver_user
-          - geoserver_password
-      environment:
-          - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
-          - GSPUB_PG_REST_USER=anon
-          - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
-      deploy:
-          restart_policy:
-            condition: on-failure
-      depends_on:
-          - postgrest_raster_publisher
-          - geoserver
+    raster_downloader_demo:
+        image: "sauberprojekt/raster_download:20200720_1"
+        networks:
+            - sauber-network
+        secrets:
+            - sauber_user_password
+            - hhi_rest_user
+            - hhi_rest_pw
+        environment:
+            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
+            - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
+            - DB_USER=sauber_user
+            - UM_CHANNEL=raster_data
+            - UM_SERVER=um_server:9000
+        deploy:
+            restart_policy:
+                condition: on-failure
+        depends_on:
+            - um_server
+        volumes:
+            - raster_data:/raster_data/:Z
+        tty:
+            true  #Keep Container alive, else completes and shuts down
+    
 
     um-ol-demo:
         image: sauberprojekt/um_ol_demo:20200701_1
