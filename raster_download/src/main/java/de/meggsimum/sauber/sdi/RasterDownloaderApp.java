@@ -20,8 +20,9 @@ public class RasterDownloaderApp {
 		String umChannel = System.getenv("umchannel");
 
 		System.out.println("Connecting to UM server: " + umServer);
-
+		
 		String[] umUrl = { "nsp://" + umServer };
+
 
 		// Create an instance for this class
 		RasterDownloader mySelf = null;
@@ -29,7 +30,7 @@ public class RasterDownloaderApp {
 			mySelf = new RasterDownloader();
 		} catch (IOException ioe) {
 //			ioe.printStackTrace();
-			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.out.println("Error while resolving secret files for RasterDownloader: "+ioe.getMessage());
 			System.exit(-1);
 		} catch (Exception e) {
 			System.out.println("Error while resolving secret files for RasterDownloader");
