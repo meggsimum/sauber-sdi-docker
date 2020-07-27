@@ -65,7 +65,7 @@ public class TestMessenger {
 			    		+ "\"interval\":3600,"
 			    		+ "\"region\":\"NRW\","
 			    		+ "\"type\":\"PM10_GM1H24H\","
-			    		+ "\"url\":\"https://www.sd-kama.de/sauber_dl/nrw_2020010114.tif\"}")
+			    		+ "\"url\":\"https://www.geomer.de/dltemp/nrw_2020010114.tif\"}")
 			    		.put("creationTime", now)
 			    		.put("predictionStartTime", then)
 			    		.put("predictionEndTime", later);	    

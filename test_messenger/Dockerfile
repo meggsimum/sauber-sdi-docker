@@ -1,5 +1,5 @@
 FROM maven:3.6.0-jdk-8-slim
-LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
+LABEL maintainer="Julian Kaeflein<julian.kaeflein@geomer.de>"
 
 ENV UM_SERVER="um_server:9000"
 ENV UM_CHANNEL="raster_data"

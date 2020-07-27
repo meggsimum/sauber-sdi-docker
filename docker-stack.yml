@@ -174,7 +174,7 @@ services:
             - "9876:9000"
 
     test_messenger:
-        image: "sauberprojekt/test_messenger:20200720_1"
+        image: "sauberprojekt/test_messenger:20200722_1"
         networks:
             - sauber-network
 #       secrets:
