@@ -3,31 +3,41 @@
  */
 package de.meggsimum.sauber.sdi;
 
-import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.postgresql.util.PGobject;
+
 import java.text.SimpleDateFormat;
+
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.imageio.ImageIO;
-
 import org.apache.commons.io.IOUtils;
+
+import org.json.JSONException;
 import org.json.JSONObject;
-import org.postgresql.util.PGobject;
 
 import com.pcbsys.nirvana.client.nChannel;
 import com.pcbsys.nirvana.client.nChannelAlreadyExistsException;
@@ -38,35 +48,20 @@ import com.pcbsys.nirvana.client.nEventProperties;
 import com.pcbsys.nirvana.client.nSession;
 import com.pcbsys.nirvana.client.nSessionAttributes;
 import com.pcbsys.nirvana.client.nSessionFactory;
-import com.twelvemonkeys.imageio.metadata.exif.EXIF;
 
 /**
  * Demo class to receive messages via Universal Messaging Channel and download a
  * possible reference to a raster file.
  *
- * @author Lisa Scherf, Software AG
  * @author C. Mayer, meggsimum
+ * @author J. Kaeflein, geomer
  */
-public class RasterDownloader implements nEventListener {
+public class JSONDownloader implements nEventListener {
 
 	/** */
 	private static JSONObject evtData = new JSONObject();
 
-	private static String evtPollutant = "";
-
-	private static String evtRegion = "";
-
 	private static final int HTTP_TIMEOUT = 10000;
-
-	private static final Map<String, String> mappingFormatEnding = new HashMap<String, String>() {
-		/** */
-		private static final long serialVersionUID = 8044765805880427026L;
-
-		{
-			put("image/tiff", "tiff");
-			put("image/jpg", "jpg");
-		}
-	};
 
 	/** */
 	protected nSession mySession = null;
@@ -87,7 +82,7 @@ public class RasterDownloader implements nEventListener {
 	 * 
 	 * @throws Exception
 	 */
-	public RasterDownloader() throws Exception {
+	public JSONDownloader() throws Exception {
 		this.resolveSecrets();
 	}
 
@@ -220,70 +215,66 @@ public class RasterDownloader implements nEventListener {
 	public void go(nConsumeEvent evt) {
 
 		// Print the message data
-		System.out.println("Event data : " + new String(evt.getEventData()));
-
 		// Print the timestamp
 		if (evt.hasAttributes()) {
 			System.out.println("Published on: " + new Date(evt.getAttributes().getTimestamp()).toString());
 		}
-
 		// Print the properties
 		nEventProperties prop = evt.getProperties();
 		if (prop != null) {
 			System.out.println("Source: " + prop.get("source"));
 			System.out.println("Category: " + prop.get("category"));
+			System.out.println("URL: " + prop.get("url")); //JK debug
 		}
 
 		// download raster
 
 		if (prop.get("source").equals("hhi")) {
-
-			// parse incoming message
+				
+			evtData = new JSONObject(new String(evt.getEventData()));		
+			//JSONObject evtData = JSONDownloader.evtData;
 			
-			RasterDownloader.evtData = new JSONObject(new String(evt.getEventData()));
-
+	  	try {
 			String category = evtData.getString("category");
-			SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
+			Long time_stamp = evtData.getLong("timestamp");
+			String source = evtData.getString("source");
+			
+			JSONObject payload = evtData.getJSONObject("payload");				
+			
+			String request = payload.getString("url");
+			String type = payload.getString("type");
+			String region = payload.getString("region");
 
-			JSONObject payload = evtData.getJSONObject("payload");
-			String request = payload.getString("url");			
-			Long time_stamp = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
-			String readableTime = format.format(time_stamp*1000);
+			//TODO leftover metadata.
+			/*
+			String stationId = payload.getString("stationId");
+			Integer interval = payload.getInt("interval"); 
+			Integer predictionStartTime = payload.getInt("predictionStartTime"); 
+			Integer creationTime = payload.getInt("creationTime"); 
+			Integer predictionEndTime = payload.getInt("predictionEndTime"); 
+			String unit = payload.getString("unit");
+			*/
 
-			evtRegion = payload.getString("region");
-			evtPollutant = payload.getString("type");	
-			String fileName = evtRegion.toLowerCase()+"_"+evtPollutant+"_"+readableTime;
+		// TODO whitelist request URLs
 
-			// TODO Check if there actually is "realtime" data
-			if (category.contains("forecast")) {
-				fileName = "fc_"+fileName;
-			} else if (category.contains("realtime")) {
-				fileName = "rt_"+fileName;
-			} else {
-				System.out.println("Error: Could not determine if real time / forecast");
-				System.exit(1);
+			if (source.equals("hhi")) {
+				try {
+					this.downloadJSON(request, region, type, time_stamp);
+				} catch (IOException e) {
+					System.out.println("Could not download JSON file");
+					e.printStackTrace();
+				}
 			}
-
-			System.out.println("URL to raster to download: " + request);
-
-			// TODO whitelist request URLs
-
-			try {
-
-				this.downloadRaster(request, fileName);
-
-			} catch (IOException e) {
-				System.out.println("Could not download raster file");
-				e.printStackTrace();
-				System.exit(1);
-			} catch (InterruptedException e) {
-				System.out.println("Could not insert raster tile");
-				e.printStackTrace();
-				System.exit(1);
-			}
+	
+	  	} 
+	  	catch(Exception e) {
+	  		e.printStackTrace();
+	  		System.exit(1);
+	  	};
+		
 		}
-	return;
-	}
+		
+}
 
 	/**
 	 * Create a Session to the given Universal Messaging realms with session
@@ -320,80 +311,63 @@ public class RasterDownloader implements nEventListener {
 	/**
 	 *
 	 * @param request
+	 * @param region
+	 * @param type 
+	 * @param time_stamp
+	 * @return 
 	 * @return
 	 * @throws IOException
-	 * @throws InterruptedException 
+	 * @throws SQLException 
 	 */
-	//private File downloadRaster(String request) throws IOException {
-	private void downloadRaster(String request, String fileName) throws IOException, InterruptedException {
+
+	private void downloadJSON(String request, String region, String type, Long time_stamp) throws IOException, SQLException {
+				
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
+		String readableTime = format.format(time_stamp*1000);
+	
+		Path jsonDir = Paths.get("/station_data");
+		Files.createDirectories(jsonDir);
+		
+		String filePathString = "/station_data/"+ region +"_"+ type +"_"+ readableTime +".json"; 
+		File jsonFile = new File(filePathString);		
 		
 		URL url = new URL(request);
-		String authStr = this.hhiRestUser + ":" + this.hhiRestPw;
-	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
+		String authStr = hhiRestUser + ":" + hhiRestPw;
+	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());		
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		
 		con.setRequestMethod("GET");
+		con.setRequestProperty("Accept", "application/json");
 		con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
 		con.setConnectTimeout(HTTP_TIMEOUT);
 		con.setReadTimeout(HTTP_TIMEOUT);
+		con.connect();
 
 		int status = con.getResponseCode();
-		System.out.println("HTTP STATUS: " + status);
-
+		
 		if (status == 200) {
-
-			InputStream is = con.getInputStream();
-			BufferedImage buffImage = ImageIO.read(is);
-
-			// write to tmp. location
-			String contentType = con.getContentType();
-			String fileEnding = RasterDownloader.mappingFormatEnding.get(contentType);
-			System.out.println("Detected " + contentType + " -> using ." + fileEnding + " as ending");
-
-			String outDir = "/opt/raster_data/"+ evtRegion.toLowerCase() +"/"+ evtPollutant.toLowerCase() +"/";
-
-			String filePathStr = outDir + fileName +"."+ fileEnding;
-
-			File imgFile = new File(filePathStr);
-			imgFile.getParentFile().mkdirs();
-			imgFile.createNewFile();
-
-			ImageIO.write(buffImage, fileEnding, imgFile);
-			
-			String absPath = imgFile.getAbsolutePath();
-			System.out.println("Raster saved at " + absPath);
-
-			is.close();
-
-			try {
-				insertRaster(fileName,absPath);  // insert raster into database via raster2pgsql
-			} catch (IOException e) {
-				System.out.println("Error inserting raster into DB");
-				e.printStackTrace();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		} else if (status == 401) {
-				System.out.println("Connection to server unauthorized. Check credentials");
-				System.exit(1);
-		} else {
-			System.out.println("Connection to server failed with HTTP status "+status+". Check connection.");
-			System.exit(1);
-		}
-
-		//return //imgFile;
-		return;
+	
+		FileOutputStream jsonOut = new FileOutputStream(jsonFile);
+		IOUtils.copy(con.getInputStream(), jsonOut);
+		jsonOut.close();
+               
+	} else if (status == 401) {
+		System.out.println("Connection to server unauthorized. Check credentials");
+		System.exit(1);
+	} else {
+		System.out.println("Connection to server failed with HTTP status "+status+". Check connection.");
+		System.exit(1);
+	}
+		//return jsonFile;
+		insertDB(filePathString);
 	}
 
-	private void insertRaster(String fileName, String absPath) throws SQLException,IOException, InterruptedException {
-
-		//declutter process builder args
-		String schemaName = evtRegion.toLowerCase().replaceAll("\\s","") +"_"+ evtPollutant.toLowerCase().replaceAll("\\s","");
-		String targetTable = schemaName +"."+ fileName;	
+	
+	private void insertDB(String filePathString) throws SQLException, IOException {
 		
+		//setup db connection
 		//String url = "jdbc:postgresql://db:5432/sauber_data";
-		String url = "jdbc:postgresql://localhost:5430/sauber_data";
+		String url = "jdbc:postgresql://localhost:5430/sauber_data";		
 		Properties props = new Properties();
 		props.setProperty("user",dbUser);
 		props.setProperty("password",dbUserPw);
@@ -401,65 +375,45 @@ public class RasterDownloader implements nEventListener {
 		Connection conn = DriverManager.getConnection(url, props);
 		conn.setAutoCommit(false);
 		
-		String createStmt = "CREATE SCHEMA IF NOT EXISTS " + schemaName +" AUTHORIZATION "+ dbUser;
+		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO station_data.raw_input (json_payload,json_message) VALUES(?,?)");
+
+		//read payload from stored json file 
+		//add as pgobject for statement
+		Path filePath = Paths.get(filePathString);
+		String payloadString = new String(Files.readAllBytes(filePath));
 		
-		PreparedStatement createSchema = conn.prepareStatement(createStmt);
-		
-		createSchema.executeUpdate();
-		conn.commit();
-		createSchema.close();
-		ProcessBuilder pb =
-				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON");
-		//Process p = pb.start();
-		Process p = pb.inheritIO().start();
-		p.waitFor();
-		Integer exitcode = p.exitValue();
-		
-		if (exitcode != 0) {
-			System.out.println("Error inserting raster tiles: Return code "+ exitcode +". Exiting.");
-			System.exit(1);
-		}
-				
-		try {
-			insertMetadata(absPath, conn); // insert raster metadata into db
-		} catch (SQLException e) {
-			System.out.println("Error inserting raster metadata into DB");
-			e.printStackTrace();
-		}	
-	}
-
-	private void insertMetadata(String filePathStr, Connection conn) throws SQLException, IOException {
-
-		//gather info to fill statement for raster metadata table
-		String JSONString = evtData.toString();
-		String workspace = "image_mosaics";
-		String coverageName = evtRegion.toLowerCase() +"_"+ evtPollutant.toLowerCase();
-		String mosaicName = coverageName +"_mosaic";
-
-		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO image_mosaics.raster_metadata (image_path, source_payload, workspace, coverage_store, image_mosaic, is_published) VALUES(?, ?, ?, ?, ?, ?)");
-
-		PGobject jsonObject = new PGobject();
-		jsonObject.setType("jsonb");
-		jsonObject.setValue(JSONString);
-		inputStmt.setString(1, filePathStr);
-		inputStmt.setObject(2, jsonObject);
-		inputStmt.setObject(3, workspace);
-		inputStmt.setObject(4, coverageName);
-		inputStmt.setString(5, mosaicName);
-		inputStmt.setInt(6, 0);
-
-		// execute statement
+		PGobject payloadObject = new PGobject();
+		payloadObject.setType("jsonb");
+		payloadObject.setValue(payloadString);
+		inputStmt.setObject(1, payloadObject);	
+	
+		//add message metadata to pgobject
+		String msgString = evtData.toString();
+		PGobject msgObject = new PGobject();
+		msgObject.setType("jsonb");
+		msgObject.setValue(msgString);		
+		inputStmt.setObject(2, msgObject);	
+	
 		int insertReturn = inputStmt.executeUpdate();
+	
 
-		//check if == 1 line was inserted as expected
 		if (insertReturn == 1) {
 			conn.commit();
 			inputStmt.close();
-			conn.close();
-			System.out.println("Inserted raster metadata");
+			Statement parseStmt = conn.createStatement();
+			String selectQuery = "SELECT station_data.parse_json()";
+			
+			ResultSet rSet = parseStmt.executeQuery(selectQuery);
+			
+			while(rSet.next()) {
+				  String output = rSet.getString(1);
+				  System.out.println(output);
+			}
+			
+			System.out.println("Inserted "+insertReturn+" row/s into JSON raw input table");
+			System.exit(0);
 		} else
-			System.out.println("Error: "+insertReturn+" rows inserted");
+			System.out.println("Could not insert JSON");
 			System.exit(1);
+		}
 	}
-}

@@ -1,17 +1,8 @@
-FROM sauberprojekt/postgis_alpine:20200701_1 as pgis
-# make sure image exists
-COPY local-deps/copy_pg_bins.sh /.
-RUN /copy_pg_bins.sh
-
 FROM maven:3.6.0-jdk-8-slim
-LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
 LABEL maintainer="Julian Kaeflein<julian.kaeflein@geomer.de>"
 
-COPY --from=pgis /psql/ /.
-COPY --from=pgis /r2p/ /.
-
 ENV UM_SERVER="um_server:9000"
-ENV UM_CHANNEL="raster_data"
+ENV UM_CHANNEL="station_data"
 
 WORKDIR /opt
 
@@ -26,4 +17,4 @@ RUN mvn install:install-file -Dfile=local-deps/nClient.jar -DgroupId=com.pcbsys.
 # build the executable JAR file
 RUN mvn clean package -DskipTests
 
-CMD umchannel=$UM_CHANNEL umserver=$UM_SERVER dbuser=$DB_USER java -jar target/raster-download-jar-with-dependencies.jar
+CMD umchannel=$UM_CHANNEL umserver=$UM_SERVER dbuser=$DB_USER java -jar target/json-download-jar-with-dependencies.jar
