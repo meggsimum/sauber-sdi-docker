@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 
 import java.nio.file.Files;
@@ -30,8 +31,6 @@ import java.text.SimpleDateFormat;
 
 import java.util.Base64;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.IOUtils;
@@ -76,6 +75,7 @@ public class JSONDownloader implements nEventListener {
 	private String hhiRestUser = null;
 	private String hhiRestPw = null;
 	private String dbUserPw = null;
+	private String hhiIP = null;
 	private String dbUser = System.getenv("dbuser");
 	
 	/**
@@ -137,11 +137,25 @@ public class JSONDownloader implements nEventListener {
 		} else {
 			throw new FileNotFoundException("Not able not load DB password from secrets");
 		}
+		
+		File secretFileIpCtn = new File("/run/secrets/hhi_ip_address");
+		File secretFileIpLoc = new File(workingDir + "/../secrets/hhi_ip_address.txt");
+		if (secretFileIpCtn.exists()) {
+			InputStream fis = new FileInputStream(secretFileIpCtn);
+			this.hhiIP = IOUtils.toString(fis, "UTF-8");
+		} else if (secretFileIpLoc.exists()) {
+			System.out.println("Using local backup secret at " + secretFileIpLoc.getAbsolutePath());
+			InputStream fis = new FileInputStream(secretFileIpLoc);
+			this.hhiIP = IOUtils.toString(fis, "UTF-8");
+		} else {
+			throw new FileNotFoundException("Not able not load HHI IP address from secrets");
+		}
 
 		//TODO remove
-		System.out.println(this.hhiRestUser);
-		System.out.println(this.hhiRestPw);
-		System.out.println(this.dbUserPw);
+		//System.out.println(this.hhiRestUser);
+		//System.out.println(this.hhiRestPw);
+		//System.out.println(this.dbUserPw);
+		//System.out.println(this.hhiIP);
 	}
 
 	/**
@@ -229,51 +243,46 @@ public class JSONDownloader implements nEventListener {
 
 		// download raster
 
-		if (prop.get("source").equals("hhi")) {
-				
-			evtData = new JSONObject(new String(evt.getEventData()));		
-			//JSONObject evtData = JSONDownloader.evtData;
-			
-	  	try {
-			String category = evtData.getString("category");
-			Long time_stamp = evtData.getLong("timestamp");
-			String source = evtData.getString("source");
-			
-			JSONObject payload = evtData.getJSONObject("payload");				
-			
-			String request = payload.getString("url");
-			String type = payload.getString("type");
-			String region = payload.getString("region");
-
-			//TODO leftover metadata.
-			/*
-			String stationId = payload.getString("stationId");
-			Integer interval = payload.getInt("interval"); 
-			Integer predictionStartTime = payload.getInt("predictionStartTime"); 
-			Integer creationTime = payload.getInt("creationTime"); 
-			Integer predictionEndTime = payload.getInt("predictionEndTime"); 
-			String unit = payload.getString("unit");
-			*/
-
-		// TODO whitelist request URLs
-
-			if (source.equals("hhi")) {
-				try {
-					this.downloadJSON(request, region, type, time_stamp);
-				} catch (IOException e) {
-					System.out.println("Could not download JSON file");
-					e.printStackTrace();
-				}
-			}
+		if (prop.get("source").equals("hhi")) {			
+			try {
+				JSONDownloader.evtData = new JSONObject(new String(evt.getEventData()));
+				Long time_stamp = evtData.getLong("timestamp");			
+				JSONObject payload = evtData.getJSONObject("payload");				
+				String request = payload.getString("url");
+				String type = payload.getString("type");
+				String region = payload.getString("region");
 	
-	  	} 
-	  	catch(Exception e) {
-	  		e.printStackTrace();
-	  		System.exit(1);
-	  	};
-		
+				//TODO leftover metadata
+				/*
+				String category = evtData.getString("category");
+				String source = evtData.getString("source");
+				String stationId = payload.getString("stationId");
+				Integer interval = payload.getInt("interval"); 
+				Integer predictionStartTime = payload.getInt("predictionStartTime"); 
+				Integer creationTime = payload.getInt("creationTime"); 
+				Integer predictionEndTime = payload.getInt("predictionEndTime"); 
+				String unit = payload.getString("unit");
+				*/
+	
+			// TODO whitelist request URLs
+	
+				URL requestUrl = new URL(request);
+				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
+				String requestIP = requestAddress.getHostAddress();			
+				
+				if (requestIP.equals(hhiIP)) {
+					try {
+						this.downloadJSON(requestUrl, region, type, time_stamp);
+					} catch (IOException e) {
+						System.out.println("Could not download JSON file");
+						e.printStackTrace();
+					}
+				}	
+		  	} catch(Exception e) {
+		  		e.printStackTrace();
+		  		System.exit(1);
+		  	};
 		}
-		
 }
 
 	/**
@@ -320,7 +329,7 @@ public class JSONDownloader implements nEventListener {
 	 * @throws SQLException 
 	 */
 
-	private void downloadJSON(String request, String region, String type, Long time_stamp) throws IOException, SQLException {
+	private void downloadJSON(URL requestUrl, String region, String type, Long time_stamp) throws IOException, SQLException {
 				
 		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
 		String readableTime = format.format(time_stamp*1000);
@@ -331,10 +340,9 @@ public class JSONDownloader implements nEventListener {
 		String filePathString = "/station_data/"+ region +"_"+ type +"_"+ readableTime +".json"; 
 		File jsonFile = new File(filePathString);		
 		
-		URL url = new URL(request);
 		String authStr = hhiRestUser + ":" + hhiRestPw;
 	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());		
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
+		HttpURLConnection con = (HttpURLConnection) requestUrl.openConnection();
 		
 		con.setRequestMethod("GET");
 		con.setRequestProperty("Accept", "application/json");
@@ -366,8 +374,8 @@ public class JSONDownloader implements nEventListener {
 	private void insertDB(String filePathString) throws SQLException, IOException {
 		
 		//setup db connection
-		//String url = "jdbc:postgresql://db:5432/sauber_data";
-		String url = "jdbc:postgresql://localhost:5430/sauber_data";		
+		String url = "jdbc:postgresql://db:5432/sauber_data";
+		//String url = "jdbc:postgresql://localhost:5430/sauber_data"; //Debug JK
 		Properties props = new Properties();
 		props.setProperty("user",dbUser);
 		props.setProperty("password",dbUserPw);
@@ -395,8 +403,9 @@ public class JSONDownloader implements nEventListener {
 		inputStmt.setObject(2, msgObject);	
 	
 		int insertReturn = inputStmt.executeUpdate();
-	
 
+		System.out.println("Inserted "+insertReturn+" row/s into JSON raw input table.");
+		
 		if (insertReturn == 1) {
 			conn.commit();
 			inputStmt.close();
@@ -405,15 +414,20 @@ public class JSONDownloader implements nEventListener {
 			
 			ResultSet rSet = parseStmt.executeQuery(selectQuery);
 			
+			//TODO: Returns completion message from DB function or PSQL Error (eg. invalid JSON). Handle PSQL Errors?
 			while(rSet.next()) {
 				  String output = rSet.getString(1);
 				  System.out.println(output);
 			}
-			
-			System.out.println("Inserted "+insertReturn+" row/s into JSON raw input table");
+			conn.commit();
+			rSet.close();
+			parseStmt.close();
+			conn.close();
+			System.out.println("Done.");
 			System.exit(0);
+
 		} else
-			System.out.println("Could not insert JSON");
+			System.out.println("Could not insert JSON.");
 			System.exit(1);
 		}
 	}

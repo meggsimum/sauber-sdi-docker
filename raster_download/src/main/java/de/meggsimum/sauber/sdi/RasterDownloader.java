@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -81,6 +82,7 @@ public class RasterDownloader implements nEventListener {
 	private String hhiRestUser = null;
 	private String hhiRestPw = null;
 	private String dbUserPw = null;
+	private String hhiIP = null;
 	private String dbUser = System.getenv("dbuser");
 	
 	/**
@@ -141,12 +143,27 @@ public class RasterDownloader implements nEventListener {
 			this.dbUserPw = IOUtils.toString(fis, "UTF-8");
 		} else {
 			throw new FileNotFoundException("Not able not load DB password from secrets");
+			
 		}
-
+		
+		File secretFileIpCtn = new File("/run/secrets/hhi_ip_address");
+		File secretFileIpLoc = new File(workingDir + "/../secrets/hhi_ip_address.txt");
+		if (secretFileIpCtn.exists()) {
+			InputStream fis = new FileInputStream(secretFileIpCtn);
+			this.hhiIP = IOUtils.toString(fis, "UTF-8");
+		} else if (secretFileIpLoc.exists()) {
+			System.out.println("Using local backup secret at " + secretFileIpLoc.getAbsolutePath());
+			InputStream fis = new FileInputStream(secretFileIpLoc);
+			this.hhiIP = IOUtils.toString(fis, "UTF-8");
+		} else {
+			throw new FileNotFoundException("Not able not load HHI IP address from secrets");
+		}
+		
 		//TODO remove
-		System.out.println(this.hhiRestUser);
-		System.out.println(this.hhiRestPw);
-		System.out.println(this.dbUserPw);
+		//System.out.println(this.hhiRestUser);
+		//System.out.println(this.hhiRestPw);
+		//System.out.println(this.dbUserPw);
+		//System.out.println(this.hhiIP);
 	}
 
 	/**
@@ -233,53 +250,69 @@ public class RasterDownloader implements nEventListener {
 			System.out.println("Source: " + prop.get("source"));
 			System.out.println("Category: " + prop.get("category"));
 		}
-
+		
 		// download raster
-
+		// TODO remove condition? See L293.
+		
 		if (prop.get("source").equals("hhi")) {
 
-			// parse incoming message
-			
-			RasterDownloader.evtData = new JSONObject(new String(evt.getEventData()));
-
-			String category = evtData.getString("category");
-			SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
-
-			JSONObject payload = evtData.getJSONObject("payload");
-			String request = payload.getString("url");			
-			Long time_stamp = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
-			String readableTime = format.format(time_stamp*1000);
-
-			evtRegion = payload.getString("region");
-			evtPollutant = payload.getString("type");	
-			String fileName = evtRegion.toLowerCase()+"_"+evtPollutant+"_"+readableTime;
-
-			// TODO Check if there actually is "realtime" data
-			if (category.contains("forecast")) {
-				fileName = "fc_"+fileName;
-			} else if (category.contains("realtime")) {
-				fileName = "rt_"+fileName;
-			} else {
-				System.out.println("Error: Could not determine if real time / forecast");
-				System.exit(1);
-			}
-
-			System.out.println("URL to raster to download: " + request);
-
-			// TODO whitelist request URLs
-
 			try {
-
-				this.downloadRaster(request, fileName);
-
-			} catch (IOException e) {
-				System.out.println("Could not download raster file");
-				e.printStackTrace();
-				System.exit(1);
-			} catch (InterruptedException e) {
-				System.out.println("Could not insert raster tile");
-				e.printStackTrace();
-				System.exit(1);
+					
+				// parse incoming message
+				
+				RasterDownloader.evtData = new JSONObject(new String(evt.getEventData()));
+	
+				String category = evtData.getString("category");
+				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
+	
+				JSONObject payload = evtData.getJSONObject("payload");
+				String request = payload.getString("url");			
+				Long time_stamp = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
+				String readableTime = format.format(time_stamp*1000);
+	
+				evtRegion = payload.getString("region");
+				evtPollutant = payload.getString("type");	
+				String fileName = evtRegion.toLowerCase()+"_"+evtPollutant+"_"+readableTime;
+	
+				// TODO Check if there actually will be "real time" data
+				if (category.contains("forecast")) {
+					fileName = "fc_"+fileName;
+				} else if (category.contains("realtime")) {
+					fileName = "rt_"+fileName;
+				} else {
+					System.out.println("Error: Could not determine if real time / forecast");
+					System.exit(1);
+				}
+	
+				URL requestUrl = new URL(request);
+				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
+				String requestIP = requestAddress.getHostAddress();			
+				
+				if (requestIP.equals(hhiIP)) {
+				
+					// TODO whitelist request URLs
+					System.out.println("URL to raster to download: " + request);			
+		
+					try {
+						
+						this.downloadRaster(request, fileName);
+						
+					} catch (IOException e) {
+						System.out.println("Could not download raster file");
+						e.printStackTrace();
+						System.exit(1);
+					} catch (InterruptedException e) {
+						System.out.println("Could not insert raster tile");
+						e.printStackTrace();
+						System.exit(1);
+					}					
+				} else {
+					System.out.println("Request URL " + requestIP + " does not match allowed IP");
+					System.exit(1);
+				}
+			} catch (Exception e) {
+		  		e.printStackTrace();
+		  		System.exit(1);
 			}
 		}
 	return;
@@ -369,8 +402,11 @@ public class RasterDownloader implements nEventListener {
 			} catch (IOException e) {
 				System.out.println("Error inserting raster into DB");
 				e.printStackTrace();
+		  		System.exit(1);
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
+				System.out.println("SQL Error:");
+				e.printStackTrace();
+		  		System.exit(1);
 				e.printStackTrace();
 			}
 
@@ -392,8 +428,8 @@ public class RasterDownloader implements nEventListener {
 		String schemaName = evtRegion.toLowerCase().replaceAll("\\s","") +"_"+ evtPollutant.toLowerCase().replaceAll("\\s","");
 		String targetTable = schemaName +"."+ fileName;	
 		
-		//String url = "jdbc:postgresql://db:5432/sauber_data";
-		String url = "jdbc:postgresql://localhost:5430/sauber_data";
+		String url = "jdbc:postgresql://db:5432/sauber_data";
+		//String url = "jdbc:postgresql://localhost:5430/sauber_data"; // Debug JK
 		Properties props = new Properties();
 		props.setProperty("user",dbUser);
 		props.setProperty("password",dbUserPw);
@@ -410,8 +446,7 @@ public class RasterDownloader implements nEventListener {
 		createSchema.close();
 		ProcessBuilder pb =
 				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON");
-		//Process p = pb.start();
+				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON"); //Debug JK
 		Process p = pb.inheritIO().start();
 		p.waitFor();
 		Integer exitcode = p.exitValue();

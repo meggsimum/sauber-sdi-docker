@@ -51,12 +51,15 @@ secrets:
     hhi_rest_pw:
         file: ./secrets/hhi_rest_pw.txt
         name: hhi_rest_pw_v1
+    hhi_ip_address:
+        file: ./secrets/hhi_ip_address.txt
+        name: hhi_ip_addr_v1
 
 
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20200701_1"
+        image: "sauberprojekt/postgis_alpine:20200911_1"
         networks:
             - sauber-network
         volumes:
@@ -169,8 +172,8 @@ services:
         tty:
             true  #Keep Container alive, else completes and shuts down
 
-    raster_downloader_demo:
-        image: "sauberprojekt/raster_download:20200729_1"
+    raster_downloader:
+        image: "sauberprojekt/raster_download:20200911_1"
         networks:
             - sauber-network
         secrets:
@@ -184,9 +187,9 @@ services:
             - DB_USER=sauber_user
             - UM_CHANNEL=raster_data
             - UM_SERVER=um_server:9000
-        deploy:
-            restart_policy:
-                condition: on-failure
+        # deploy:
+        #     restart_policy:
+        #         condition: always
         depends_on:
             - um_server
         volumes:
@@ -194,24 +197,26 @@ services:
         tty:
             true 
 
-    json_downloader_demo:
-        image: "sauberprojekt/json_download:20200729_1"
+    json_downloader:
+        image: "sauberprojekt/json_download:20200911_1"
         networks:
             - sauber-network
         secrets:
             - sauber_user_password
             - hhi_rest_user
             - hhi_rest_pw
+            - hhi_ip_address
         environment:
             - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
+            - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_ip_address
             - DB_USER=sauber_user
             - UM_CHANNEL=station_data
             - UM_SERVER=um_server:9000
-        deploy:
-            restart_policy:
-                condition: on-failure
+        # deploy:
+        #     restart_policy:
+        #         condition: always
         depends_on:
             - um_server
         # volumes:
