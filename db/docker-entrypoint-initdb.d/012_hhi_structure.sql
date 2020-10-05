@@ -78,7 +78,7 @@ ALTER SCHEMA station_data OWNER TO sauber_manager;
 -- Name: timescaledb; Type: EXTENSION; Schema: -; Owner: 
 --
 
-CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA station_data;
+CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA public;
 
 
 --

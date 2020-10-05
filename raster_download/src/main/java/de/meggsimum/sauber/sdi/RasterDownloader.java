@@ -104,14 +104,14 @@ public class RasterDownloader implements nEventListener {
 		String workingDir = System.getProperty("user.dir");
 		
 		// load HHI REST user from docker secret or use local dev file as backup
-		File secretFileUsrCtn = new File("/run/secrets/hhi_rest_user");
-		File secretFileUsrLoc = new File(workingDir + "/../secrets/hhi_rest_user.txt");
-		if (secretFileUsrCtn.exists()) {
-			InputStream fis = new FileInputStream(secretFileUsrCtn);
+		File secretFileHhiRestUsrCtn  = new File("/run/secrets/hhi_rest_user");
+		File secretFileHhiRestUsrLoc  = new File(workingDir + "/../secrets/hhi_rest_user.txt");
+		if (secretFileHhiRestUsrCtn .exists()) {
+			InputStream fis = new FileInputStream(secretFileHhiRestUsrCtn );
 			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
-		} else if (secretFileUsrLoc.exists()) {
-			System.out.println("Using local backup secret at " + secretFileUsrLoc.getAbsolutePath());
-			InputStream fis = new FileInputStream(secretFileUsrLoc);
+		} else if (secretFileHhiRestUsrLoc .exists()) {
+			System.out.println("Using local backup secret at " + secretFileHhiRestUsrLoc .getAbsolutePath());
+			InputStream fis = new FileInputStream(secretFileHhiRestUsrLoc );
 			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
 		} else {
 			throw new FileNotFoundException("Not able not load REST user from secrets");
@@ -158,12 +158,6 @@ public class RasterDownloader implements nEventListener {
 		} else {
 			throw new FileNotFoundException("Not able not load HHI IP address from secrets");
 		}
-		
-		//TODO remove
-		//System.out.println(this.hhiRestUser);
-		//System.out.println(this.hhiRestPw);
-		//System.out.println(this.dbUserPw);
-		//System.out.println(this.hhiIP);
 	}
 
 	/**
@@ -259,7 +253,6 @@ public class RasterDownloader implements nEventListener {
 			try {
 					
 				// parse incoming message
-				
 				RasterDownloader.evtData = new JSONObject(new String(evt.getEventData()));
 	
 				String category = evtData.getString("category");
@@ -267,8 +260,8 @@ public class RasterDownloader implements nEventListener {
 	
 				JSONObject payload = evtData.getJSONObject("payload");
 				String request = payload.getString("url");			
-				Long time_stamp = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
-				String readableTime = format.format(time_stamp*1000);
+				Long predictionStartTime  = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
+				String readableTime = format.format(predictionStartTime *1000);
 	
 				evtRegion = payload.getString("region");
 				evtPollutant = payload.getString("type");	
@@ -290,7 +283,6 @@ public class RasterDownloader implements nEventListener {
 				
 				if (requestIP.equals(hhiIP)) {
 				
-					// TODO whitelist request URLs
 					System.out.println("URL to raster to download: " + request);			
 		
 					try {
@@ -357,7 +349,6 @@ public class RasterDownloader implements nEventListener {
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
-	//private File downloadRaster(String request) throws IOException {
 	private void downloadRaster(String request, String fileName) throws IOException, InterruptedException {
 		
 		URL url = new URL(request);
@@ -407,7 +398,6 @@ public class RasterDownloader implements nEventListener {
 				System.out.println("SQL Error:");
 				e.printStackTrace();
 		  		System.exit(1);
-				e.printStackTrace();
 			}
 
 		} else if (status == 401) {
@@ -418,7 +408,6 @@ public class RasterDownloader implements nEventListener {
 			System.exit(1);
 		}
 
-		//return //imgFile;
 		return;
 	}
 
@@ -445,8 +434,8 @@ public class RasterDownloader implements nEventListener {
 		conn.commit();
 		createSchema.close();
 		ProcessBuilder pb =
-				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -s 3035 -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON"); //Debug JK
+				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
+				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON"); //Debug JK
 		Process p = pb.inheritIO().start();
 		p.waitFor();
 		Integer exitcode = p.exitValue();

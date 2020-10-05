@@ -150,12 +150,6 @@ public class JSONDownloader implements nEventListener {
 		} else {
 			throw new FileNotFoundException("Not able not load HHI IP address from secrets");
 		}
-
-		//TODO remove
-		//System.out.println(this.hhiRestUser);
-		//System.out.println(this.hhiRestPw);
-		//System.out.println(this.dbUserPw);
-		//System.out.println(this.hhiIP);
 	}
 
 	/**
@@ -246,44 +240,34 @@ public class JSONDownloader implements nEventListener {
 		if (prop.get("source").equals("hhi")) {			
 			try {
 				JSONDownloader.evtData = new JSONObject(new String(evt.getEventData()));
-				Long time_stamp = evtData.getLong("timestamp");			
+				Long timeStamp = evtData.getLong("timestamp");			
 				JSONObject payload = evtData.getJSONObject("payload");				
 				String request = payload.getString("url");
 				String type = payload.getString("type");
 				String region = payload.getString("region");
-	
-				//TODO leftover metadata
-				/*
-				String category = evtData.getString("category");
-				String source = evtData.getString("source");
-				String stationId = payload.getString("stationId");
-				Integer interval = payload.getInt("interval"); 
-				Integer predictionStartTime = payload.getInt("predictionStartTime"); 
-				Integer creationTime = payload.getInt("creationTime"); 
-				Integer predictionEndTime = payload.getInt("predictionEndTime"); 
-				String unit = payload.getString("unit");
-				*/
-	
-			// TODO whitelist request URLs
-	
+
 				URL requestUrl = new URL(request);
 				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
 				String requestIP = requestAddress.getHostAddress();			
 				
 				if (requestIP.equals(hhiIP)) {
 					try {
-						this.downloadJSON(requestUrl, region, type, time_stamp);
+						this.downloadJSON(requestUrl, region, type, timeStamp);
 					} catch (IOException e) {
 						System.out.println("Could not download JSON file");
 						e.printStackTrace();
 					}
-				}	
+				} else {
+					System.out.println("Request URL " + requestIP + " does not match allowed IP");
+					System.exit(1);
+				}		
+				
 		  	} catch(Exception e) {
 		  		e.printStackTrace();
 		  		System.exit(1);
 		  	};
-		}
-}
+		}	
+	}
 
 	/**
 	 * Create a Session to the given Universal Messaging realms with session
@@ -322,17 +306,17 @@ public class JSONDownloader implements nEventListener {
 	 * @param request
 	 * @param region
 	 * @param type 
-	 * @param time_stamp
+	 * @param timeStamp
 	 * @return 
 	 * @return
 	 * @throws IOException
 	 * @throws SQLException 
 	 */
 
-	private void downloadJSON(URL requestUrl, String region, String type, Long time_stamp) throws IOException, SQLException {
+	private void downloadJSON(URL requestUrl, String region, String type, Long timeStamp) throws IOException, SQLException {
 				
 		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
-		String readableTime = format.format(time_stamp*1000);
+		String readableTime = format.format(timeStamp*1000);
 	
 		Path jsonDir = Paths.get("/station_data");
 		Files.createDirectories(jsonDir);

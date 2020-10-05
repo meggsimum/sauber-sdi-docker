@@ -9,6 +9,7 @@ volumes:
     lubw_data:
     geoserver_data:
     raster_data:
+    json_data:
     um_data:
     um_logs:
     um_licence:
@@ -59,7 +60,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20200911_1"
+        image: "sauberprojekt/postgis_alpine:20201002_1"
         networks:
             - sauber-network
         volumes:
@@ -144,10 +145,10 @@ services:
         networks:
             - sauber-network
         # secrets:
-        # environment:
-        deploy:
-            restart_policy:
-             condition: on-failure
+        #environment:
+        # deploy:
+        #     restart_policy:
+        #      condition: on-failure
         # depends_on:
         # healthcheck:
         volumes:
@@ -170,16 +171,17 @@ services:
         depends_on:
             - um_server
         tty:
-            true  #Keep Container alive, else completes and shuts down
+            true
 
     raster_downloader:
-        image: "sauberprojekt/raster_download:20200911_1"
+        image: "sauberprojekt/raster_download:20201001_1"
         networks:
             - sauber-network
         secrets:
             - sauber_user_password
             - hhi_rest_user
             - hhi_rest_pw
+            - hhi_ip_address
         environment:
             - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
@@ -198,7 +200,7 @@ services:
             true 
 
     json_downloader:
-        image: "sauberprojekt/json_download:20200911_1"
+        image: "sauberprojekt/json_download:20201001_1"
         networks:
             - sauber-network
         secrets:
@@ -219,8 +221,8 @@ services:
         #         condition: always
         depends_on:
             - um_server
-        # volumes:
-        #     - json_data:/json_data/:Z
+        volumes:
+            - json_data:/json_data/:Z
         tty:
             true
 

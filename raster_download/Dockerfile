@@ -1,14 +1,14 @@
-FROM sauberprojekt/postgis_alpine:20200701_1 as pgis
-# make sure image exists
-COPY local-deps/copy_pg_bins.sh /.
+FROM postgis/postgis:12-3.0-alpine as pgis
+COPY resources/copy_pg_bins.sh /.
 RUN /copy_pg_bins.sh
 
 FROM maven:3.6.0-jdk-8-slim
 LABEL maintainer="Christian Mayer<chris@meggsimum.de>"
 LABEL maintainer="Julian Kaeflein<julian.kaeflein@geomer.de>"
 
+# copy postgres client binaries from build stage image
 COPY --from=pgis /psql/ /.
-COPY --from=pgis /r2p/ /.
+COPY --from=pgis /raster2pgsql/ /.
 
 ENV UM_SERVER="um_server:9000"
 ENV UM_CHANNEL="raster_data"

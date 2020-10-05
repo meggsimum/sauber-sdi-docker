@@ -1,17 +1,17 @@
 ARG POSTGRES_VERSION=12
-ARG TIMESCALE_VERSION=1.7.1
+ARG TIMESCALE_VERSION=1.7.4
 
 FROM timescale/timescaledb:${TIMESCALE_VERSION}-pg${POSTGRES_VERSION}
 LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
-ARG POSTGIS_VERSION=3.0.0
+ARG POSTGIS_VERSION=3.0.2
 ENV POSTGIS=${POSTGIS_VERSION}
 
 RUN set -ex \
     \
     && apk add --no-cache --virtual .fetch-deps ca-certificates openssl tar \
     \
-    && wget -q -O postgis.tar.gz "https://github.com/postgis/postgis/archive/$POSTGIS_VERSION.tar.gz" \
+    && wget -O postgis.tar.gz "https://github.com/postgis/postgis/archive/$POSTGIS_VERSION.tar.gz" \
     && mkdir -p /usr/src/postgis \
     && tar \
         --extract \
@@ -31,6 +31,8 @@ RUN set -ex \
         llvm \
         clang \
         clang-dev \
+        gdal-dev \
+        gdal \
     \
     && apk add --no-cache --virtual .build-deps-edge \
         --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
@@ -38,15 +40,15 @@ RUN set -ex \
         g++ gdal-dev geos-dev proj-dev protobuf-c-dev \
     && cd /usr/src/postgis \
     && ./autogen.sh \
-    && ./configure \
+    && ./configure -q \
     && make -s \
-    && make install -s \
+    && make -s install \
     && apk add --no-cache --virtual .postgis-rundeps \
         json-c \
     && apk add --no-cache --virtual .postgis-rundeps-edge \
         --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
         --repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
-        geos gdal proj protobuf-c libstdc++ \
+        geos proj gdal-dev gdal protobuf-c libstdc++ \
     && cd / \
     && rm -rf /usr/src/postgis \
     && apk del .fetch-deps .build-deps .build-deps-edge

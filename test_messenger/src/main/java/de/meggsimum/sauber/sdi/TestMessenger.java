@@ -32,12 +32,10 @@ public class TestMessenger {
 		
 		public void publish(String[] rname, String chname, String sourcename, String category) {
 		
-		// Get the timestamp
-		Long now = System.currentTimeMillis()/1000;
-		Long then = now + 3600;
-		Long later = then + 3600;
-		
-		
+			// Get the timestamp
+			Long now = System.currentTimeMillis()/1000;
+			Long then = now + 3600;
+			Long later = then + 3600;		
 			nSessionAttributes nsa;
 			try {
 				

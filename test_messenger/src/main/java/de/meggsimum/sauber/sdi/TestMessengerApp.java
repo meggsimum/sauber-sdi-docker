@@ -4,7 +4,7 @@
 package de.meggsimum.sauber.sdi;
 
 /**
- * @author C. Mayer, meggsimum
+ * @author J. Kaeflein, geomer
  */
 public class TestMessengerApp {
 
