@@ -1,0 +1,1 @@
+30 * * * * bash /scripts/dl_sauber_ftp.sh 2>&1
