@@ -7,8 +7,9 @@ import java.io.IOException;
 
 /**
  * @author C. Mayer, meggsimum
+ * @author J. Kaeflein, geomer
  */
-public class RasterDownloaderApp {
+public class JSONDownloaderApp {
 
 	/**
 	 * @param args
@@ -25,15 +26,15 @@ public class RasterDownloaderApp {
 
 
 		// Create an instance for this class
-		RasterDownloader mySelf = null;
+		JSONDownloader mySelf = null;
 		try {
-			mySelf = new RasterDownloader();
+			mySelf = new JSONDownloader();
 		} catch (IOException ioe) {
 //			ioe.printStackTrace();
-			System.out.println("Error while resolving secret files for RasterDownloader: "+ioe.getMessage());
+			System.out.println("Error while resolving secret files for JSONDownloader: "+ioe.getMessage());
 			System.exit(-1);
 		} catch (Exception e) {
-			System.out.println("Error while resolving secret files for RasterDownloader");
+			System.out.println("Error while resolving secret files for JSONDownloader");
 			System.exit(-1);
 		}
 

@@ -225,11 +225,25 @@ EOSQL
 psql -d sauber_data -q <<-'EOSQL'
     GRANT USAGE ON SCHEMA image_mosaics TO anon;
     GRANT SELECT ON image_mosaics.raster_metadata TO anon;
-    GRANT UPDATE TABLE image_mosaics.raster_metadata TO anon;
+    GRANT UPDATE ON TABLE image_mosaics.raster_metadata TO anon;
     GRANT ALL ON TABLE image_mosaics.raster_metadata TO sauber_manager;
     GRANT INSERT, UPDATE (is_published) ON image_mosaics.raster_metadata TO anon;
     GRANT USAGE ON SCHEMA station_data TO anon;
-    GRANT SELECT ON station_data.raw_input TO anon;
+    GRANT SELECT ON station_data.lut_region TO anon;
+    GRANT SELECT ON station_data.lut_component TO anon;
+    GRANT SELECT ON station_data.lut_station TO anon;
+    GRANT SELECT ON station_data.tab_measurement TO anon;
+    GRANT SELECT ON station_data.tab_prediction TO anon;
+    GRANT SELECT ON station_data.logtable TO anon;
+    GRANT USAGE ON SCHEMA station_data TO sauber_user;
+    GRANT SELECT ON station_data.raw_input TO sauber_user;
+    GRANT SELECT ON station_data.lut_region TO sauber_user;
+    GRANT SELECT ON station_data.lut_component TO sauber_user;
+    GRANT SELECT ON station_data.lut_station TO sauber_user;
+    GRANT SELECT ON station_data.tab_measurement TO sauber_user;
+    GRANT SELECT ON station_data.tab_prediction TO sauber_user;
+    GRANT SELECT ON station_data.logtable TO sauber_user;
+    GRANT SELECT ON station_data.raw_input TO sauber_user;
 EOSQL
 
 #echo 'PGRST PASSWORD: ' $PGRST_PASSWORD

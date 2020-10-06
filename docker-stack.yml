@@ -9,6 +9,7 @@ volumes:
     lubw_data:
     geoserver_data:
     raster_data:
+    json_data:
     um_data:
     um_logs:
     um_licence:
@@ -45,11 +46,21 @@ secrets:
     postgres_init_password:
         file: ./secrets/postgres_init_password.txt
         name: postgres_init_password_v1
+    hhi_rest_user:
+        file: ./secrets/hhi_rest_user.txt
+        name: hhi_rest_user_v1
+    hhi_rest_pw:
+        file: ./secrets/hhi_rest_pw.txt
+        name: hhi_rest_pw_v1
+    hhi_ip_address:
+        file: ./secrets/hhi_ip_address.txt
+        name: hhi_ip_addr_v1
+
 
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20200701_1"
+        image: "sauberprojekt/postgis_alpine:20201002_1"
         networks:
             - sauber-network
         volumes:
@@ -134,10 +145,10 @@ services:
         networks:
             - sauber-network
         # secrets:
-        # environment:
-        deploy:
-            restart_policy:
-             condition: on-failure
+        #environment:
+        # deploy:
+        #     restart_policy:
+        #      condition: on-failure
         # depends_on:
         # healthcheck:
         volumes:
@@ -148,26 +159,72 @@ services:
         ports:
             - "9876:9000"
 
-    # raster_downloader_demo:
-    #     image: "sauber_raster-download:latest"
-    #     networks:
-    #         - sauber-network
-    #     secrets:
-    #         - sauber_user_password
-    #                external: true
-    #     environment:
-    #         - UMSERVER=um_server:9000
-    #         - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
-    #     deploy:
-    #         restart_policy:
-    #             condition: on-failure
-    #     depends_on:
-    #         - um_server
-    #     volumes:
-    #         - raster_data:/raster_data/:Z
-    #     tty:
-    #         true  #Keep Container alive, else completes and shuts down
-    #
+    test_messenger:
+        image: "sauberprojekt/test_messenger:20200722_1"
+        networks:
+            - sauber-network
+#       secrets:
+        environment:
+            - UM_SERVER=um_server:9000
+            - UM_CHANNEL=raster_data
+            - CLASSPATH=/opt/target/classes
+        depends_on:
+            - um_server
+        tty:
+            true
+
+    raster_downloader:
+        image: "sauberprojekt/raster_download:20201001_1"
+        networks:
+            - sauber-network
+        secrets:
+            - sauber_user_password
+            - hhi_rest_user
+            - hhi_rest_pw
+            - hhi_ip_address
+        environment:
+            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
+            - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
+            - DB_USER=sauber_user
+            - UM_CHANNEL=raster_data
+            - UM_SERVER=um_server:9000
+        # deploy:
+        #     restart_policy:
+        #         condition: always
+        depends_on:
+            - um_server
+        volumes:
+            - raster_data:/raster_data/:Z
+        tty:
+            true 
+
+    json_downloader:
+        image: "sauberprojekt/json_download:20201001_1"
+        networks:
+            - sauber-network
+        secrets:
+            - sauber_user_password
+            - hhi_rest_user
+            - hhi_rest_pw
+            - hhi_ip_address
+        environment:
+            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
+            - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
+            - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_ip_address
+            - DB_USER=sauber_user
+            - UM_CHANNEL=station_data
+            - UM_SERVER=um_server:9000
+        # deploy:
+        #     restart_policy:
+        #         condition: always
+        depends_on:
+            - um_server
+        volumes:
+            - json_data:/json_data/:Z
+        tty:
+            true
 
     geoserver_raster_publisher:
       image: "sauberprojekt/geoserver_raster_publisher:20200701_1"

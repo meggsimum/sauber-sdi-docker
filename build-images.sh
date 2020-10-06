@@ -14,6 +14,10 @@ docker build --rm -f "db/Dockerfile" -t sauberprojekt/postgis_alpine:$IMG_VERSIO
 
 docker build --rm -f "raster_download/Dockerfile" -t sauberprojekt/raster_download:$IMG_VERSION "raster_download"
 
+docker build --rm -f "json_download/Dockerfile" -t sauberprojekt/json_download:$IMG_VERSION "json_download"
+
+docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$IMG_VERSION "test_messenger"
+
 docker build --rm -f "postgrest/Dockerfile" -t sauberprojekt/postgrest:$IMG_VERSION "postgrest"
 
 docker build --rm -f "geoserver_publisher/Dockerfile" -t sauberprojekt/geoserver_raster_publisher:$IMG_VERSION "geoserver_publisher"
