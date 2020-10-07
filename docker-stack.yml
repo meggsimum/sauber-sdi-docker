@@ -60,7 +60,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20201002_1"
+        image: "sauberprojekt/postgis_alpine:${TAG:-master}"
         networks:
             - sauber-network
         volumes:
@@ -90,7 +90,7 @@ services:
             - "5440:5432"
 
     geoserver:
-        image: "meggsimum/geoserver"
+        image: "meggsimum/geoserver:2.17.3"
         networks:
             - sauber-network
         secrets:
@@ -115,7 +115,7 @@ services:
             - "8080:8080"
 
     postgrest_raster_publisher:
-        image: "sauberprojekt/postgrest:20200701_1"
+        image: "sauberprojekt/postgrest:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
@@ -160,7 +160,7 @@ services:
             - "9876:9000"
 
     test_messenger:
-        image: "sauberprojekt/test_messenger:20200722_1"
+        image: "sauberprojekt/test_messenger:${TAG:-master}"
         networks:
             - sauber-network
 #       secrets:
@@ -174,7 +174,7 @@ services:
             true
 
     raster_downloader:
-        image: "sauberprojekt/raster_download:20201001_1"
+        image: "sauberprojekt/raster_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
@@ -197,10 +197,10 @@ services:
         volumes:
             - raster_data:/raster_data/:Z
         tty:
-            true 
+            true
 
     json_downloader:
-        image: "sauberprojekt/json_download:20201001_1"
+        image: "sauberprojekt/json_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
@@ -227,7 +227,7 @@ services:
             true
 
     geoserver_raster_publisher:
-      image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
+      image: "sauberprojekt/geoserver_raster_publisher:${TAG:-master}"
       networks:
           - sauber-network
       secrets:
@@ -246,14 +246,14 @@ services:
           - geoserver
 
     um-ol-demo:
-        image: sauberprojekt/um_ol_demo:20200701_1
+        image: sauberprojekt/um_ol_demo:${TAG:-master}
         networks:
             - sauber-network
         ports:
             - "9999:80"
 
     um-js-demo:
-        image: sauberprojekt/um_js_demo:20200701_1
+        image: sauberprojekt/um_js_demo:${TAG:-master}
         networks:
             - sauber-network
         ports:
