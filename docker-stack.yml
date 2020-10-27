@@ -37,6 +37,9 @@ secrets:
     geoserver_password:
         file: ./secrets/geoserver_password.txt
         name: geoserver_password_v1
+    app_password:
+        file: ./secrets/app_password.txt
+        name: app_password_v1
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
         name: sauber_user_password_v1
@@ -70,12 +73,14 @@ services:
             - postgrest_password
             - sauber_manager_password
             - sauber_user_password
+            - app_password
             - postgres_init_password
         environment:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
             - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - APP_PASSWORD_FILE=/run/secrets/app_password
             - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_init_password
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -104,7 +109,6 @@ services:
             - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
             - ./geoserver_mnt/raster_data:/opt/raster_data:Z
            # - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
-           # - raster_data/:/opt/raster_data:Z
         deploy:
             replicas: 1
             restart_policy:
@@ -178,15 +182,15 @@ services:
         networks:
             - sauber-network
         secrets:
-            - sauber_user_password
+            - app_password
             - hhi_rest_user
             - hhi_rest_pw
             - hhi_ip_address
         environment:
-            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - APP_PASSWORD_FILE=/run/secrets/app_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
-            - DB_USER=sauber_user
+            - DB_USER=app
             - UM_CHANNEL=raster_data
             - UM_SERVER=um_server:9000
         # deploy:
@@ -195,7 +199,7 @@ services:
         depends_on:
             - um_server
         volumes:
-            - raster_data:/raster_data/:Z
+            - ./geoserver_mnt/raster_data:/opt/raster_data:Z
         tty:
             true
 
@@ -204,16 +208,16 @@ services:
         networks:
             - sauber-network
         secrets:
-            - sauber_user_password
+            - app_password
             - hhi_rest_user
             - hhi_rest_pw
             - hhi_ip_address
         environment:
-            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - SAUBER_APP_PASSWORD_FILE=/run/secrets/app_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_ip_address
-            - DB_USER=sauber_user
+            - DB_USER=app
             - UM_CHANNEL=station_data
             - UM_SERVER=um_server:9000
         # deploy:
@@ -235,7 +239,6 @@ services:
           - geoserver_user
           - geoserver_password
       environment:
-          - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
           - GSPUB_PG_REST_USER=anon
           - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
       deploy:

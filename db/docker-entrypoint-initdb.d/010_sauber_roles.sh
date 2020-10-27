@@ -17,7 +17,7 @@ file_env() {
 	elif [ "${!fileVar:-}" ]; then
 		val="$(< "${!fileVar}")"
 	fi
-	echo "$var,$val"
+	#echo "$var,$val"
 	export "$var"="$val"
 	unset "$fileVar" 
 }
@@ -27,6 +27,7 @@ file_env() {
 secrets=(
     SAUBER_USER_PASSWORD
     SAUBER_MANAGER_PASSWORD
+    APP_PASSWORD
 )
 
 for e in "${secrets[@]}"; do
@@ -37,6 +38,7 @@ done
 envs=(
     SAUBER_USER_PASSWORD
     SAUBER_MANAGER_PASSWORD
+    APP_PASSWORD
 )
 
 for e in "${envs[@]}"; do
@@ -75,10 +77,49 @@ psql -U "${POSTGRES_USER}" -q<<-'EOSQL'
     END IF;
     END
     $do$;
+    DO
+    $do$
+    BEGIN
+    IF NOT EXISTS (
+        SELECT                       
+        FROM   pg_catalog.pg_roles
+        WHERE  rolname = 'app') THEN
+        CREATE USER app;
+        RAISE NOTICE 'Created app role';
+    END IF;
+    END
+    $do$;
+    DO
+    $do$
+    BEGIN
+    IF NOT EXISTS (
+        SELECT                       
+        FROM   pg_catalog.pg_roles
+        WHERE  rolname = 'anon') THEN
+        CREATE role anon nologin;
+    END IF;
+    END
+    $do$;
+    DO
+    $do$
+    BEGIN
+    IF NOT EXISTS (
+        SELECT                       
+        FROM   pg_catalog.pg_roles
+        WHERE  rolname = 'authenticator') THEN
+        CREATE role authenticator login noinherit;
+        GRANT anon TO authenticator;
+        ALTER user authenticator password 'pgrstpw';
+    END IF;
+    END
+    $do$;
 EOSQL
 
 
 #STEP 3: Set passwords from above. 
 
 echo "Setting secrets"
-psql -q -U "${POSTGRES_USER}" -c "ALTER USER sauber_manager PASSWORD '$SAUBER_MANAGER_PASSWORD'; ALTER USER sauber_user PASSWORD '$SAUBER_USER_PASSWORD';"
+psql -q -U "${POSTGRES_USER}" -c "ALTER USER sauber_manager PASSWORD '$SAUBER_MANAGER_PASSWORD'; \
+                                    ALTER USER sauber_user PASSWORD '$SAUBER_USER_PASSWORD'; \
+                                    ALTER USER app PASSWORD '$APP_PASSWORD'; \
+                                    "

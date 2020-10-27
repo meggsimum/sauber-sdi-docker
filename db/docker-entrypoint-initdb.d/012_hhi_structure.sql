@@ -2,10 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 11.4
--- Dumped by pg_dump version 11.5
-
--- Started on 2020-09-11 17:17:31
+-- Dumped from database version 12.4
+-- Dumped by pg_dump version 12.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,80 +16,23 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- TOC entry 4926 (class 1262 OID 253015)
--- Name: sauber_data; Type: DATABASE; Schema: -; Owner: sauber_manager
---
-
-CREATE DATABASE sauber_data WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'German_Germany.1252' LC_CTYPE = 'German_Germany.1252';
-
-
-ALTER DATABASE sauber_data OWNER TO sauber_manager;
-
-\connect sauber_data
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
+CREATE DATABASE sauber_data;
+\c sauber_data
 
 --
--- TOC entry 4928 (class 0 OID 0)
--- Dependencies: 4926
--- Name: sauber_data; Type: DATABASE PROPERTIES; Schema: -; Owner: sauber_manager
---
-
-ALTER DATABASE sauber_data SET "timescaledb.restoring" TO 'off';
-
-
-\connect sauber_data
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
---
--- TOC entry 28 (class 2615 OID 254611)
--- Name: station_data; Type: SCHEMA; Schema: -; Owner: sauber_manager
---
-
-CREATE SCHEMA station_data;
-
-
-ALTER SCHEMA station_data OWNER TO sauber_manager;
-
---
--- TOC entry 3 (class 3079 OID 254612)
--- Name: timescaledb; Type: EXTENSION; Schema: -; Owner: 
+-- Name: timescaledb; Type: EXTENSION; Schema: -; Owner: -
 --
 
 CREATE EXTENSION IF NOT EXISTS timescaledb WITH SCHEMA public;
 
 
 --
--- TOC entry 4930 (class 0 OID 0)
--- Dependencies: 3
 -- Name: EXTENSION timescaledb; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION timescaledb IS 'Enables scalable inserts and complex queries for time-series data';
 
-
 --
--- TOC entry 30 (class 2615 OID 254597)
 -- Name: image_mosaics; Type: SCHEMA; Schema: -; Owner: sauber_manager
 --
 
@@ -101,114 +42,338 @@ CREATE SCHEMA image_mosaics;
 ALTER SCHEMA image_mosaics OWNER TO sauber_manager;
 
 --
--- TOC entry 29 (class 2615 OID 261525)
--- Name: nrw_pm10_gm1h24h; Type: SCHEMA; Schema: -; Owner: sauber_user
+-- Name: station_data; Type: SCHEMA; Schema: -; Owner: sauber_manager
 --
 
-CREATE SCHEMA nrw_pm10_gm1h24h;
+CREATE SCHEMA station_data;
 
 
-ALTER SCHEMA nrw_pm10_gm1h24h OWNER TO sauber_user;
-
---
--- TOC entry 15 (class 2615 OID 255211)
--- Name: raster_data; Type: SCHEMA; Schema: -; Owner: sauber_manager
---
-
-CREATE SCHEMA raster_data;
-
-
-ALTER SCHEMA raster_data OWNER TO sauber_manager;
+ALTER SCHEMA station_data OWNER TO sauber_manager;
 
 --
--- TOC entry 2 (class 3079 OID 253016)
--- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
+-- Name: postgis; Type: EXTENSION; Schema: -; Owner: -
 --
 
 CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;
 
 
 --
--- TOC entry 4932 (class 0 OID 0)
--- Dependencies: 2
 -- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION postgis IS 'PostGIS geometry, geography, and raster spatial types and functions';
 
 
+--
+-- Name: postgis_raster; Type: EXTENSION; Schema: -; Owner: -
+--
+
 CREATE EXTENSION IF NOT EXISTS postgis_raster WITH SCHEMA public;
 
+
 --
--- TOC entry 1661 (class 1255 OID 258053)
+-- Name: EXTENSION postgis_raster; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION postgis_raster IS 'PostGIS raster types and functions';
+
+
+--
 -- Name: createlogentry(jsonb); Type: FUNCTION; Schema: station_data; Owner: sauber_manager
 --
 
 CREATE FUNCTION station_data.createlogentry(pload jsonb DEFAULT '{"none": "none"}'::jsonb) RETURNS void
     LANGUAGE plpgsql
     AS $_$
+
   DECLARE
+
     json_payload ALIAS for $1 ;
+
   BEGIN
 
    EXECUTE FORMAT (
-          '
-          insert into station_data.logtable (log_entry) VALUES (%L)
-          ', json_payload
+          'insert into station_data.logtable (log_entry) VALUES (%L)', json_payload
            );
-
   END;
+
 $_$;
 
 
 ALTER FUNCTION station_data.createlogentry(pload jsonb) OWNER TO sauber_manager;
 
 --
--- TOC entry 1663 (class 1255 OID 279245)
--- Name: get_prediction(text, text, timestamp without time zone, timestamp without time zone); Type: FUNCTION; Schema: station_data; Owner: postgres
+-- Name: lanuv_parse(text); Type: FUNCTION; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE FUNCTION station_data.get_prediction(station_id text, component_id text, start_time timestamp without time zone, end_time timestamp without time zone) RETURNS TABLE(zeitpunkt timestamp without time zone, vorhersagewert double precision, komponente text, station text, geom public.geometry)
-    LANGUAGE plpgsql
-    AS $_$
+CREATE OR REPLACE FUNCTION station_data.lanuv_parse(input_ts text)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE 
+
+  i RECORD;
+    ts TIMESTAMP;
+   
+    logentry_payload JSONB;
+    counter INT;
+
 BEGIN
 
-RETURN QUERY 
-SELECT
-	p.date_time,
-    p.val,
-    c.name_component,
-    s.name_station,
-    s.wkb_geometry
+  ts := input_ts::timestamp;
 
-   FROM station_data.tab_prediction p
-     JOIN station_data.lut_component c ON c.idpk_component = p.fk_component
-     JOIN station_data.lut_station s ON s.idpk_station = p.fk_station
-   WHERE 
-     s.name_station like $1
-   AND 
-     c.name_component like $2
-   AND 
-     p.date_time >= $3
-   AND
-     p.date_time <= $4
+  CREATE TEMP TABLE tmp (
+      val double precision, 
+      date_time timestamp, 
+      component text, 
+      station text 
+      )
+    ON COMMIT DROP ;
 
+  -- INSERT station data 
+   INSERT INTO 
+     station_data.lut_station
+     (
+      station_name,
+      station_code, 
+      last_updated
+     )
+   SELECT 
+      station_name,
+      station_code,
+      now()
+   FROM station_data.input_lanuv rm
+   ON CONFLICT (station_code) DO NOTHING;
+   
+   UPDATE station_data.lut_station
+   SET last_updated = now()
+   FROM station_data.input_lanuv inp
+   WHERE lut_station.station_name = inp.station_name;
+   
+      
+  FOR i in (SELECT * FROM station_data.input_lanuv) LOOP
+    
+      --RAISE NOTICE 'code:%, o3:%, so2:% pm10:% ', i.station_code, i.o3_val, i.so2_val, i.pm10_val;
+    
+    INSERT INTO tmp (val, date_time,component,station)
+    SELECT i.o3_val::double precision, ts ,'O3_AM1H', i.station_code
+    WHERE i.o3_val IS NOT NULL;
+     
+    INSERT INTO tmp (val, date_time,component,station)
+    SELECT   i.so2_val::double precision, ts ,'SO2_AM1H', i.station_code
+    WHERE i.so2_val IS NOT NULL;
+      
+    INSERT INTO tmp (val, date_time,component,station)
+    SELECT   i.pm10_val::double precision, ts ,'PM10_GM1H24H', i.station_code
+    WHERE i.pm10_val IS NOT NULL;
+    
+    INSERT INTO tmp (val, date_time,component,station)
+    SELECT i.no2_val::double precision, ts ,'NO2_AM1H', i.station_code
+    WHERE i.no2_val IS NOT NULL;
 
-ORDER BY p.date_time DESC;
+  END LOOP;
+  
+    SELECT COUNT(val) FROM tmp INTO counter;
+ 
+  WITH 
+      lut_stat AS
+      (SELECT * FROM  station_data.lut_station)
+      ,
+      lut_comp AS
+      (SELECT * FROM  station_data.lut_component)
+
+  INSERT INTO 
+      station_data.tab_measurement 
+    (
+      val,
+      date_time,
+      fk_component,
+      fk_station
+    )
+    
+    SELECT 
+      tmp.val, 
+      tmp.date_time, 
+      lut_comp.idpk_component, 
+      lut_stat.idpk_station
+    
+    FROM tmp
+    JOIN lut_stat ON tmp.station = lut_stat.station_code
+    JOIN lut_comp on tmp.component = lut_comp.component_name
+    ON CONFLICT (date_time, fk_component, fk_station) 
+    DO NOTHING;
+   
+   TRUNCATE TABLE station_data.input_lanuv;
+
+   logentry_payload = '{"source":"lanuv","timestamp":"'||ts||'", "n_vals":"'||counter||'"}';
+   EXECUTE FORMAT('SELECT station_data.createlogentry(%L)',logentry_payload);
+   RAISE NOTICE 'Finished parsing % values (incl. NULL) from LANUV at %.', counter, now();
+
 END;
-$_$;
+$function$
+;
 
 
-ALTER FUNCTION station_data.get_prediction(station_id text, component_id text, start_time timestamp without time zone, end_time timestamp without time zone) OWNER TO postgres;
+
+ALTER FUNCTION station_data.lanuv_parse(input_ts text) OWNER TO sauber_manager;
 
 --
--- TOC entry 1662 (class 1255 OID 278392)
--- Name: parse_json(); Type: FUNCTION; Schema: station_data; Owner: postgres
+-- Name: lubw_parse(); Type: FUNCTION; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE FUNCTION station_data.parse_json() RETURNS text
-    LANGUAGE plpgsql
-    AS $$
+CREATE OR REPLACE FUNCTION station_data.lubw_parse()
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    myxml XML;
+        
+    messstelle TEXT;
+    ms_name TEXT;
+    ms_kurzname TEXT;
+    ms_eu TEXT;
+    ms_nuts TEXT;
+    ms_hw INTEGER;
+    ms_rw INTEGER;
+    ms_abrufzeit TEXT;
+    
+    datentyp TEXT;
+    ad_name TEXT;
+    
+    k_name TEXT;
+    k_kurzname TEXT;
+    k_kompkenn INTEGER;
+    k_nachweisgrenze TEXT;
+    k_einheit TEXT;
+   
+  mess_tag TEXT;    
+    time_stamp TIMESTAMP;
+    curr_hour TIME := '23:59:59';
+    
+    wert NUMERIC;    
+    i XML;
+    zaehler INTEGER;
+    logentry_payload JSONB;
+
+BEGIN
+  
+    CREATE TEMP TABLE output_tmp (
+        ms_eu TEXT,
+        ad_name TEXT,
+        ko_name TEXT,
+        zeit TIMESTAMP,
+        werte numeric
+    )
+    ON COMMIT DROP;
+
+    SELECT xml FROM station_data.input_lubw INTO myxml;
+
+  FOREACH messstelle IN ARRAY xpath('//Messstelle/@Name', myxml) LOOP
+    FOREACH i IN ARRAY xpath('.//Messstelle[@Name='''||messstelle||''']', myxml) LOOP
+    
+            ms_name := messstelle;  
+            ms_kurzname := (xpath('.//@KurzName', i))[1];           
+            ms_eu := (xpath('.//@EUKenn', i))[1];
+            ms_nuts := (xpath('.//@NUTS', i))[1];
+            ms_rw := (xpath('.//@RW', i))[1];
+            ms_hw := (xpath('.//@HW', i))[1];
+      ms_abrufzeit := (xpath('.//@AbrufZeiger', i))[1];
+
+            INSERT INTO station_data.lut_station (station_code, station_name, eu_id, nuts_id, last_updated, wkb_geometry)
+                VALUES ( ms_kurzname, ms_name, ms_eu, ms_nuts, now(),
+                        st_transform(st_setsrid(st_makepoint(ms_rw, ms_hw),31467), 3035)::public.geometry(POINT,3035)
+                       ) 
+                ON CONFLICT DO NOTHING;
+
+
+            FOREACH datentyp IN ARRAY xpath('.//Messstelle[@Name='''||messstelle||''']/DatenTyp/@AD-Name', myxml) LOOP
+                FOREACH i IN ARRAY xpath('.//Messstelle[@Name='''||messstelle||''']/DatenTyp[@AD-Name='''||datentyp||''']', myxml) LOOP
+                    
+                    ad_name := datentyp;
+                    k_name := (xpath('.//Komponente/@Name', i))[1];      
+                    k_kurzname := (xpath('.//Komponente/@KurzName', i))[1];
+                    k_kompkenn := (xpath('.//Komponente/@KompKenn', i))[1];
+                    k_nachweisgrenze := (xpath('.//Komponente/@NachweisGrenze', i))[1];
+                    k_einheit := (xpath('.//Komponente/@Einheit', i))[1];
+                    mess_tag := (xpath('.//DatenReihe/@ZeitPunkt', i))[1];
+
+                    INSERT INTO station_data.lut_component (component_name, component_name_short, unit, threshold, lubw_code)
+                        VALUES (ad_name, k_kurzname, k_einheit, k_nachweisgrenze,k_kompkenn)
+                        ON CONFLICT DO NOTHING;
+
+
+                    FOREACH wert IN ARRAY xpath('.//Messstelle[@Name='''||messstelle||''']/DatenTyp[@AD-Name='''||datentyp||''']/Komponente/DatenReihe/Wert//text()', myxml) LOOP
+                            
+                        curr_hour := curr_hour + interval '1 hour';
+                        time_stamp := (mess_tag||' '||curr_hour)::TIMESTAMP;
+            
+
+                        INSERT INTO output_tmp (ms_eu, ad_name, ko_name, zeit, werte)
+                          SELECT ms_eu, ad_name, k_name, time_stamp,wert
+                            WHERE wert <> -999
+                            ON CONFLICT DO NOTHING;
+                        
+                    END LOOP;
+                END LOOP;
+            END LOOP;
+        END LOOP;
+    END LOOP;
+  
+
+    WITH 
+    lut_stat AS
+    (SELECT * from station_data.lut_station)
+    ,
+    lut_co AS
+    (SELECT * from station_data.lut_component)
+
+    INSERT INTO station_data.tab_measurement 
+      (
+      fk_station, 
+      fk_component, 
+      date_time,  
+      val
+      )
+
+    SELECT 
+      lut_stat.idpk_station, 
+      lut_co.idpk_component, 
+      output_tmp.zeit, 
+      output_tmp.werte
+    
+    FROM output_tmp
+    JOIN lut_stat ON output_tmp.ms_eu = lut_stat.eu_id
+    JOIN lut_co on output_tmp.ad_name = lut_co.component_name
+    ON CONFLICT DO NOTHING;
+   
+   UPDATE station_data.lut_station
+   SET last_updated = now()
+   FROM output_tmp tmp
+   WHERE lut_station.eu_id = tmp.ms_eu;
+
+  SELECT COUNT(werte) INTO zaehler FROM output_tmp;
+    logentry_payload = '{"source":"lubw","timestamp":"'||ms_abrufzeit||'", "n_vals":"'||zaehler||'"}';
+    EXECUTE FORMAT ('SELECT station_data.createlogentry(%L)',logentry_payload);
+    
+    TRUNCATE TABLE station_data.input_lubw;
+   
+    RAISE NOTICE 'Finished parsing % values (incl. NULL) from LUBW at %.', zaehler, now();
+
+END;
+$function$
+;
+
+
+ALTER FUNCTION station_data.lubw_parse() OWNER TO sauber_manager;
+
+--
+-- Name: prediction_parse(); Type: FUNCTION; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE OR REPLACE FUNCTION station_data.prediction_parse()
+ RETURNS text
+ LANGUAGE plpgsql
+AS $function$
 DECLARE
   payload JSONB;
   message JSONB;
@@ -222,7 +387,8 @@ DECLARE
   category_name TEXT;
   message_payload JSONB;
 
-  type_id TEXT;
+  component_id TEXT;
+  component_id_short TEXT;
   unit_id TEXT;
   region_id TEXT;
   station_id TEXT;
@@ -234,8 +400,10 @@ DECLARE
 
   time_to_prediction SMALLINT;
 
+  logentry_payload JSONB;
+  counter INTEGER;
 BEGIN
-	
+  
   DROP TABLE IF EXISTS tmp_json_vals;
   --Create tmp tables to hold parsed values
   CREATE TEMP TABLE tmp_json_vals (
@@ -246,32 +414,32 @@ BEGIN
     tmp_region TEXT, 
     tmp_component TEXT,
     tmp_timetopred SMALLINT
-  ) ON COMMIT DROP;	
+  ) ON COMMIT DROP;  
 
   --Get last raw JSON FROM  input table
   --This function gets called only after successful JSON insert
   --> Last JSON should be latest input
   -- chance for empty [] input -> function called on outdated json? 
   SELECT json_payload 
-    FROM  station_data.raw_input 
+    FROM  station_data.input_prediction 
     ORDER BY idpk_json DESC 
     LIMIT 1 
   INTO payload;
-	
+  
   SELECT json_message 
-    FROM  station_data.raw_input 
+    FROM  station_data.input_prediction 
     ORDER BY idpk_json DESC 
     LIMIT 1 
   INTO message;
   
   -- read all msg params  
   
-  message_timestamp := to_timestamp((message->'TIMESTAMP')::bigint);
+  message_timestamp := to_timestamp((message->'timestamp')::bigint);
   category_name := message->'category';
-  
   message_payload := message->'payload';
   
-  type_id := message_payload->>'type';
+  component_id := message_payload->>'type';
+  component_id_short := split_part(message_payload->>'type','_',1);
   unit_id := message_payload->>'unit';
   region_id := message_payload->>'region';
   interval_len := message_payload->'interval';
@@ -288,237 +456,193 @@ BEGIN
   FOR j IN
   SELECT * FROM jsonb_array_elements(prediction) 
   LOOP
-    pred_dt := to_timestamp((j->>'DateTime')::bigint); 
-    pred_val := j->>type_id;
-    time_to_prediction := extract(EPOCH FROM pred_dt - prediction_start_time)/3600; 
-    --RAISE NOTICE E'pred val: %\n pred dt: %\n pred start time: %\n time delta: %\n', pred_val, pred_dt, prediction_start_time, time_to_prediction; 
-    INSERT INTO tmp_json_vals (tmp_dt,tmp_val,tmp_station, tmp_geom, tmp_region,tmp_component, tmp_timetopred) VALUES (pred_dt, pred_val, station_id, coordinates, region_id, type_id, time_to_prediction);
-  END LOOP;
+      pred_dt := to_timestamp((j->>'DateTime')::bigint); 
+      pred_val := j->>component_id;
+      time_to_prediction := extract(EPOCH FROM pred_dt - prediction_start_time)/3600; 
+      --RAISE NOTICE E'pred val: %\n pred dt: %\n pred start time: %\n time delta: %\n', pred_val, pred_dt, prediction_start_time, time_to_prediction; 
+    
+     INSERT INTO tmp_json_vals 
+      (
+        tmp_dt,tmp_val,
+        tmp_station, 
+        tmp_geom, 
+        tmp_region,
+        tmp_component, 
+        tmp_timetopred
+      ) 
+      VALUES 
+       (
+         pred_dt, 
+         pred_val, 
+         station_id,
+         coordinates, 
+         region_id, 
+         component_id, 
+         time_to_prediction
+       );
+     END LOOP;
 
+  SELECT COUNT(tmp_val) FROM tmp_json_vals INTO counter;
+  
 -- INSERT station data 
   INSERT INTO 
     station_data.lut_station
   (
-    name_station,
+    station_code,
     address,
-    wkb_geometry
+    wkb_geometry,
+    last_updated 
   )
   VALUES (
     station_id,
-    (SELECT 'Einsteinufer 37 10587 Berlin'), --replace when available
-    coordinates
-  ) ON CONFLICT (name_station) DO NOTHING;
-  
-  -- update station last write time
+    'Einsteinufer 37 10587 Berlin'::TEXT, --replace when available
+    coordinates,
+    now()
+  ) ON CONFLICT (station_code) DO NOTHING;
+
   UPDATE 
-    station_data.lut_station 
-  SET 
-    last_updated = now()
-  WHERE name_station like station_id;
+    station_data.lut_station
+  SET wkb_geometry = coordinates 
+  WHERE wkb_geometry IS NULL;
   
-RAISE NOTICE E' here';
   -- INSERT component metadata 
   INSERT INTO 
     station_data.lut_component
   (
-    name_component,
+    component_name,
+    component_name_short,
     unit,
-    threshold
+    lubw_threshold
   )
-  VALUES (
-    type_id,
-	unit_id,
-    (SELECT 'dummy_threshold') -- replace when available
-  )
-  ON CONFLICT (name_component)DO NOTHING;
-
-  -- INSERT region metadata 
-  
-  INSERT INTO 
-    station_data.lut_region
+  VALUES 
   (
-    name_region
+    component_id,
+    component_id_short,
+  unit_id,
+    'dummy_threshold'::TEXT -- replace when available
   )
-  VALUES (
-	region_id
-  ) 
-  ON CONFLICT (name_region) DO NOTHING;	
-
+  ON CONFLICT (component_name)DO NOTHING;
 
 -- INSERT values 
-
   WITH 
     lut_stat AS
     (SELECT * FROM  station_data.lut_station)
     ,
     lut_comp AS
     (SELECT * FROM  station_data.lut_component)
-    ,
-    lut_reg AS
-    (SELECT * FROM  station_data.lut_region)
 
-  INSERT INTO 
-    station_data.tab_prediction
+  INSERT INTO station_data.tab_prediction
   (
-	val,
+  val,
     date_time,
     fk_component,
     fk_station,
-    fk_region,
     offset_hrs
   )
   
-  SELECT tmp_json_vals.tmp_val,tmp_json_vals.tmp_dt, lut_comp.idpk_component, lut_stat.idpk_station, lut_reg.idpk_region, tmp_json_vals.tmp_timetopred
+  SELECT 
+    
+    tmp_json_vals.tmp_val, 
+    tmp_json_vals.tmp_dt, 
+    lut_comp.idpk_component, 
+    lut_stat.idpk_station, 
+    tmp_json_vals.tmp_timetopred
   
   FROM tmp_json_vals
-  JOIN lut_stat ON tmp_json_vals.tmp_station = lut_stat.name_station
-  JOIN lut_comp on tmp_json_vals.tmp_component = lut_comp.name_component
-  JOIN lut_reg on tmp_json_vals.tmp_region =  lut_reg.name_region
+  JOIN lut_stat ON tmp_json_vals.tmp_station = lut_stat.station_name
+  JOIN lut_comp on tmp_json_vals.tmp_component = lut_comp.component_name
   WHERE tmp_json_vals.tmp_dt >= prediction_start_time
-  ON CONFLICT (val, date_time, fk_component, fk_station, fk_region) DO NOTHING;
+  ON CONFLICT (val, date_time, fk_component, fk_station) DO NOTHING;
 
-  EXECUTE FORMAT ('SELECT station_data.createlogentry(%L)',message);
-  
-  RETURN FORMAT('Parsed input values for station %L.', station_id);
+  logentry_payload = '{"source":"hhi","data_timestamp":"'||message_timestamp||'", "n_vals":"'||counter||'"}';
+  EXECUTE FORMAT ('SELECT station_data.createlogentry(%L)',logentry_payload);
+  RETURN FORMAT('Inserted %L values from HHI into predictions table.', counter);
 
 END;
-$$;
+$function$
+;
 
 
-ALTER FUNCTION station_data.parse_json() OWNER TO postgres;
+
+ALTER FUNCTION station_data.prediction_parse() OWNER TO sauber_manager;
 
 SET default_tablespace = '';
 
-SET default_with_oids = false;
+SET default_table_access_method = heap;
 
 --
--- TOC entry 303 (class 1259 OID 255078)
--- Name: tab_prediction; Type: TABLE; Schema: station_data; Owner: sauber_manager
+-- Name: nrw_demo; Type: TABLE; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE TABLE station_data.tab_prediction (
-    idpk_value bigint NOT NULL,
-    val double precision NOT NULL,
-    date_time timestamp without time zone NOT NULL,
-    fk_component integer NOT NULL,
-    fk_station integer NOT NULL,
-    fk_region integer NOT NULL,
-    offset_hrs text NOT NULL
+CREATE TABLE image_mosaics.nrw_demo (
+    fid integer NOT NULL,
+    the_geom public.geometry(Polygon,25832),
+    location character varying(255),
+    ts timestamp without time zone
 );
 
 
-ALTER TABLE station_data.tab_prediction OWNER TO sauber_manager;
+ALTER TABLE image_mosaics.nrw_demo OWNER TO sauber_manager;
 
 --
--- TOC entry 314 (class 1259 OID 278206)
--- Name: _hyper_1_13_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_demo_fid_seq; Type: SEQUENCE; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE TABLE _timescaledb_internal._hyper_1_13_chunk (
-    CONSTRAINT constraint_13 CHECK (((date_time >= '2020-07-16 00:00:00'::timestamp without time zone) AND (date_time < '2020-07-23 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_prediction);
+CREATE SEQUENCE image_mosaics.nrw_demo_fid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
-ALTER TABLE _timescaledb_internal._hyper_1_13_chunk OWNER TO sauber_manager;
-
---
--- TOC entry 317 (class 1259 OID 279175)
--- Name: _hyper_1_16_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE TABLE _timescaledb_internal._hyper_1_16_chunk (
-    CONSTRAINT constraint_16 CHECK (((date_time >= '2020-08-06 00:00:00'::timestamp without time zone) AND (date_time < '2020-08-13 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_prediction);
-
-
-ALTER TABLE _timescaledb_internal._hyper_1_16_chunk OWNER TO sauber_manager;
+ALTER TABLE image_mosaics.nrw_demo_fid_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 307 (class 1259 OID 257999)
--- Name: _hyper_1_2_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_demo_fid_seq; Type: SEQUENCE OWNED BY; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE TABLE _timescaledb_internal._hyper_1_2_chunk (
-    CONSTRAINT constraint_2 CHECK (((date_time >= '2020-05-28 00:00:00'::timestamp without time zone) AND (date_time < '2020-06-04 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_prediction);
+ALTER SEQUENCE image_mosaics.nrw_demo_fid_seq OWNED BY image_mosaics.nrw_demo.fid;
 
-
-ALTER TABLE _timescaledb_internal._hyper_1_2_chunk OWNER TO sauber_manager;
 
 --
--- TOC entry 310 (class 1259 OID 269941)
--- Name: _hyper_1_8_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_pm10_gm1h24h; Type: TABLE; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE TABLE _timescaledb_internal._hyper_1_8_chunk (
-    CONSTRAINT constraint_8 CHECK (((date_time >= '2020-07-23 00:00:00'::timestamp without time zone) AND (date_time < '2020-07-30 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_prediction);
-
-
-ALTER TABLE _timescaledb_internal._hyper_1_8_chunk OWNER TO sauber_manager;
-
---
--- TOC entry 311 (class 1259 OID 269966)
--- Name: _hyper_1_9_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE TABLE _timescaledb_internal._hyper_1_9_chunk (
-    CONSTRAINT constraint_9 CHECK (((date_time >= '2020-07-30 00:00:00'::timestamp without time zone) AND (date_time < '2020-08-06 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_prediction);
-
-
-ALTER TABLE _timescaledb_internal._hyper_1_9_chunk OWNER TO sauber_manager;
-
---
--- TOC entry 301 (class 1259 OID 255073)
--- Name: tab_measurement; Type: TABLE; Schema: station_data; Owner: sauber_manager
---
-
-CREATE TABLE station_data.tab_measurement (
-    idpk_prediction bigint NOT NULL,
-    val double precision NOT NULL,
-    date_time timestamp without time zone NOT NULL,
-    fk_component integer NOT NULL,
-    fk_station integer NOT NULL,
-    fk_region integer NOT NULL
+CREATE TABLE image_mosaics.nrw_pm10_gm1h24h (
+    fid integer NOT NULL,
+    the_geom public.geometry(Polygon,25832),
+    location character varying(255),
+    ts timestamp without time zone
 );
 
 
-ALTER TABLE station_data.tab_measurement OWNER TO sauber_manager;
+ALTER TABLE image_mosaics.nrw_pm10_gm1h24h OWNER TO sauber_manager;
 
 --
--- TOC entry 315 (class 1259 OID 278782)
--- Name: _hyper_2_14_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_pm10_gm1h24h_fid_seq; Type: SEQUENCE; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE TABLE _timescaledb_internal._hyper_2_14_chunk (
-    CONSTRAINT constraint_14 CHECK (((date_time >= '2020-07-23 00:00:00'::timestamp without time zone) AND (date_time < '2020-07-30 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_measurement);
+CREATE SEQUENCE image_mosaics.nrw_pm10_gm1h24h_fid_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
-ALTER TABLE _timescaledb_internal._hyper_2_14_chunk OWNER TO sauber_manager;
-
---
--- TOC entry 316 (class 1259 OID 278791)
--- Name: _hyper_2_15_chunk; Type: TABLE; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE TABLE _timescaledb_internal._hyper_2_15_chunk (
-    CONSTRAINT constraint_15 CHECK (((date_time >= '2020-07-16 00:00:00'::timestamp without time zone) AND (date_time < '2020-07-23 00:00:00'::timestamp without time zone)))
-)
-INHERITS (station_data.tab_measurement);
-
-
-ALTER TABLE _timescaledb_internal._hyper_2_15_chunk OWNER TO sauber_manager;
+ALTER TABLE image_mosaics.nrw_pm10_gm1h24h_fid_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 309 (class 1259 OID 260698)
+-- Name: nrw_pm10_gm1h24h_fid_seq; Type: SEQUENCE OWNED BY; Schema: image_mosaics; Owner: sauber_manager
+--
+
+ALTER SEQUENCE image_mosaics.nrw_pm10_gm1h24h_fid_seq OWNED BY image_mosaics.nrw_pm10_gm1h24h.fid;
+
+
+--
 -- Name: raster_metadata; Type: TABLE; Schema: image_mosaics; Owner: sauber_manager
 --
 
@@ -537,7 +661,6 @@ CREATE TABLE image_mosaics.raster_metadata (
 ALTER TABLE image_mosaics.raster_metadata OWNER TO sauber_manager;
 
 --
--- TOC entry 308 (class 1259 OID 260696)
 -- Name: raster_metadata_idpk_image_seq; Type: SEQUENCE; Schema: image_mosaics; Owner: sauber_manager
 --
 
@@ -553,8 +676,6 @@ CREATE SEQUENCE image_mosaics.raster_metadata_idpk_image_seq
 ALTER TABLE image_mosaics.raster_metadata_idpk_image_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4936 (class 0 OID 0)
--- Dependencies: 308
 -- Name: raster_metadata_idpk_image_seq; Type: SEQUENCE OWNED BY; Schema: image_mosaics; Owner: sauber_manager
 --
 
@@ -562,136 +683,58 @@ ALTER SEQUENCE image_mosaics.raster_metadata_idpk_image_seq OWNED BY image_mosai
 
 
 --
--- TOC entry 313 (class 1259 OID 270455)
--- Name: fc_nrw_pm10_gm1h24h_2020073004; Type: TABLE; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
---
-
-CREATE TABLE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004 (
-    rid integer NOT NULL,
-    rast public.raster,
-    CONSTRAINT enforce_height_rast CHECK ((public.st_height(rast) = 61)),
-    CONSTRAINT enforce_nodata_values_rast CHECK ((public._raster_constraint_nodata_values(rast) = '{NULL}'::numeric[])),
-    CONSTRAINT enforce_num_bands_rast CHECK ((public.st_numbands(rast) = 1)),
-    CONSTRAINT enforce_out_db_rast CHECK ((public._raster_constraint_out_db(rast) = '{f}'::boolean[])),
-    CONSTRAINT enforce_pixel_types_rast CHECK ((public._raster_constraint_pixel_types(rast) = '{32BUI}'::text[])),
-    CONSTRAINT enforce_same_alignment_rast CHECK (public.st_samealignment(rast, '0100000000000000000000F03F000000000000F0BF0000000000000000000000000000000000000000000000000000000000000000E864000001000100'::public.raster)),
-    CONSTRAINT enforce_scalex_rast CHECK ((round((public.st_scalex(rast))::numeric, 10) = round((1)::numeric, 10))),
-    CONSTRAINT enforce_scaley_rast CHECK ((round((public.st_scaley(rast))::numeric, 10) = round((- (1)::numeric), 10))),
-    CONSTRAINT enforce_srid_rast CHECK ((public.st_srid(rast) = 25832)),
-    CONSTRAINT enforce_width_rast CHECK ((public.st_width(rast) = 36))
-);
-
-
-ALTER TABLE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004 OWNER TO sauber_user;
-
---
--- TOC entry 312 (class 1259 OID 270453)
--- Name: fc_nrw_pm10_gm1h24h_2020073004_rid_seq; Type: SEQUENCE; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
---
-
-CREATE SEQUENCE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004_rid_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004_rid_seq OWNER TO sauber_user;
-
---
--- TOC entry 4938 (class 0 OID 0)
--- Dependencies: 312
--- Name: fc_nrw_pm10_gm1h24h_2020073004_rid_seq; Type: SEQUENCE OWNED BY; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
---
-
-ALTER SEQUENCE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004_rid_seq OWNED BY nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004.rid;
-
-
---
--- TOC entry 306 (class 1259 OID 255214)
--- Name: nrw_no2_2020010100; Type: TABLE; Schema: raster_data; Owner: postgres
---
-
-CREATE TABLE raster_data.nrw_no2_2020010100 (
-    rid integer NOT NULL,
-    rast public.raster,
-    filename text,
-    CONSTRAINT enforce_height_rast CHECK ((public.st_height(rast) = 43)),
-    CONSTRAINT enforce_nodata_values_rast CHECK ((public._raster_constraint_nodata_values(rast) = '{NULL,NULL,NULL,NULL}'::numeric[])),
-    CONSTRAINT enforce_num_bands_rast CHECK ((public.st_numbands(rast) = 4)),
-    CONSTRAINT enforce_out_db_rast CHECK ((public._raster_constraint_out_db(rast) = '{f,f,f,f}'::boolean[])),
-    CONSTRAINT enforce_pixel_types_rast CHECK ((public._raster_constraint_pixel_types(rast) = '{8BUI,8BUI,8BUI,8BUI}'::text[])),
-    CONSTRAINT enforce_same_alignment_rast CHECK (public.st_samealignment(rast, '01000000005C4803DD18AD3740CBF58D966FF641C0705F072EF3052F41E8D9AC8A05D2574100000000000000000000000000000000E610000001000100'::public.raster)),
-    CONSTRAINT enforce_scalex_rast CHECK ((round((public.st_scalex(rast))::numeric, 10) = round(23.6761606343283, 10))),
-    CONSTRAINT enforce_scaley_rast CHECK ((round((public.st_scaley(rast))::numeric, 10) = round((- 35.9252803986706), 10))),
-    CONSTRAINT enforce_srid_rast CHECK ((public.st_srid(rast) = 4326)),
-    CONSTRAINT enforce_width_rast CHECK ((public.st_width(rast) = 67))
-);
-
-
-ALTER TABLE raster_data.nrw_no2_2020010100 OWNER TO postgres;
-
---
--- TOC entry 305 (class 1259 OID 255212)
--- Name: nrw_no2_2020010100_rid_seq; Type: SEQUENCE; Schema: raster_data; Owner: postgres
---
-
-CREATE SEQUENCE raster_data.nrw_no2_2020010100_rid_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE raster_data.nrw_no2_2020010100_rid_seq OWNER TO postgres;
-
---
--- TOC entry 4939 (class 0 OID 0)
--- Dependencies: 305
--- Name: nrw_no2_2020010100_rid_seq; Type: SEQUENCE OWNED BY; Schema: raster_data; Owner: postgres
---
-
-ALTER SEQUENCE raster_data.nrw_no2_2020010100_rid_seq OWNED BY raster_data.nrw_no2_2020010100.rid;
-
-
---
--- TOC entry 293 (class 1259 OID 255041)
 -- Name: lut_component; Type: TABLE; Schema: station_data; Owner: sauber_manager
 --
 
 CREATE TABLE station_data.lut_component (
     idpk_component integer NOT NULL,
-    name_component text NOT NULL,
+    component_name text NOT NULL,
+    component_name_short text,
     unit text,
-    threshold text
+    threshold text,
+    lubw_code integer
 );
 
 
 ALTER TABLE station_data.lut_component OWNER TO sauber_manager;
 
 --
--- TOC entry 297 (class 1259 OID 255057)
 -- Name: lut_station; Type: TABLE; Schema: station_data; Owner: sauber_manager
 --
 
 CREATE TABLE station_data.lut_station (
     idpk_station integer NOT NULL,
-    name_station text NOT NULL,
+    station_code text NOT NULL,
+    station_name text,
+    eu_id text,
+    nuts_id text,
+    region smallint,
     address text,
     last_updated timestamp without time zone,
-    wkb_geometry public.geometry(Point,4326) NOT NULL
+    wkb_geometry public.geometry(Point,3035)
 );
 
 
 ALTER TABLE station_data.lut_station OWNER TO sauber_manager;
 
 --
--- TOC entry 318 (class 1259 OID 281353)
--- Name: fv_wfs; Type: VIEW; Schema: station_data; Owner: postgres
+-- Name: tab_prediction; Type: TABLE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE TABLE station_data.tab_prediction (
+    idpk_value bigint NOT NULL,
+    val double precision NOT NULL,
+    date_time timestamp without time zone NOT NULL,
+    fk_component integer NOT NULL,
+    fk_station integer NOT NULL,
+    offset_hrs smallint NOT NULL
+);
+
+
+ALTER TABLE station_data.tab_prediction OWNER TO sauber_manager;
+
+--
+-- Name: fv_wfs; Type: VIEW; Schema: station_data; Owner: sauber_manager
 --
 
 CREATE VIEW station_data.fv_wfs AS
@@ -707,21 +750,79 @@ CREATE VIEW station_data.fv_wfs AS
         )
  SELECT row_number() OVER () AS idpk,
     sel.fk_component AS component_id,
-    co.name_component AS component_name,
+    co.component_name,
     sel.fk_station AS station_id,
-    s.name_station AS station_name,
-    json_agg(json_build_object('datetime', sel.date_time, 'val', sel.wert) ORDER BY sel.date_time DESC) AS series,
+    s.station_name,
+    max(sel.date_time) AS max_datetime,
+    min(sel.date_time) AS min_datetime,
+    (json_agg(json_build_object('datetime', sel.date_time, 'val', sel.wert) ORDER BY sel.date_time DESC))::text AS series,
     s.wkb_geometry AS geom
    FROM ((sel
      JOIN station_data.lut_component co ON ((sel.fk_component = co.idpk_component)))
      JOIN station_data.lut_station s ON ((sel.fk_station = s.idpk_station)))
-  GROUP BY s.idpk_station, sel.fk_component, sel.fk_station, co.name_component, s.name_station, s.wkb_geometry;
+  GROUP BY s.idpk_station, sel.fk_component, sel.fk_station, co.component_name, s.station_name, s.wkb_geometry;
 
 
 ALTER TABLE station_data.fv_wfs OWNER TO sauber_manager;
 
 --
--- TOC entry 291 (class 1259 OID 255032)
+-- Name: gt_pk_metadata; Type: TABLE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE TABLE station_data.gt_pk_metadata (
+    table_schema character varying(32) NOT NULL,
+    table_name character varying(32) NOT NULL,
+    pk_column character varying(32) NOT NULL,
+    pk_column_idx integer,
+    pk_policy character varying(32),
+    pk_sequence character varying(64)
+);
+
+
+ALTER TABLE station_data.gt_pk_metadata OWNER TO sauber_manager;
+
+--
+-- Name: input_lanuv; Type: TABLE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE TABLE station_data.input_lanuv (
+    station_name text,
+    station_code text,
+    o3_val text,
+    so2_val text,
+    no2_val text,
+    pm10_val text,
+    other text
+);
+
+
+ALTER TABLE station_data.input_lanuv OWNER TO sauber_manager;
+
+--
+-- Name: input_lubw; Type: TABLE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE TABLE station_data.input_lubw (
+    xml xml
+);
+
+
+ALTER TABLE station_data.input_lubw OWNER TO sauber_manager;
+
+--
+-- Name: input_prediction; Type: TABLE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE TABLE station_data.input_prediction (
+    idpk_json integer NOT NULL,
+    json_payload jsonb NOT NULL,
+    json_message jsonb NOT NULL
+);
+
+
+ALTER TABLE station_data.input_prediction OWNER TO sauber_manager;
+
+--
 -- Name: logtable; Type: TABLE; Schema: station_data; Owner: sauber_manager
 --
 
@@ -735,7 +836,6 @@ CREATE TABLE station_data.logtable (
 ALTER TABLE station_data.logtable OWNER TO sauber_manager;
 
 --
--- TOC entry 292 (class 1259 OID 255039)
 -- Name: logtable_idpk_log_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
 --
 
@@ -751,8 +851,6 @@ CREATE SEQUENCE station_data.logtable_idpk_log_seq
 ALTER TABLE station_data.logtable_idpk_log_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4943 (class 0 OID 0)
--- Dependencies: 292
 -- Name: logtable_idpk_log_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
@@ -760,7 +858,6 @@ ALTER SEQUENCE station_data.logtable_idpk_log_seq OWNED BY station_data.logtable
 
 
 --
--- TOC entry 294 (class 1259 OID 255047)
 -- Name: lut_component_idpk_component_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
 --
 
@@ -776,8 +873,6 @@ CREATE SEQUENCE station_data.lut_component_idpk_component_seq
 ALTER TABLE station_data.lut_component_idpk_component_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4945 (class 0 OID 0)
--- Dependencies: 294
 -- Name: lut_component_idpk_component_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
@@ -785,45 +880,6 @@ ALTER SEQUENCE station_data.lut_component_idpk_component_seq OWNED BY station_da
 
 
 --
--- TOC entry 295 (class 1259 OID 255049)
--- Name: lut_region; Type: TABLE; Schema: station_data; Owner: sauber_manager
---
-
-CREATE TABLE station_data.lut_region (
-    idpk_region integer NOT NULL,
-    name_region text NOT NULL
-);
-
-
-ALTER TABLE station_data.lut_region OWNER TO sauber_manager;
-
---
--- TOC entry 296 (class 1259 OID 255055)
--- Name: lut_region_idpk_region_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
---
-
-CREATE SEQUENCE station_data.lut_region_idpk_region_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE station_data.lut_region_idpk_region_seq OWNER TO sauber_manager;
-
---
--- TOC entry 4948 (class 0 OID 0)
--- Dependencies: 296
--- Name: lut_region_idpk_region_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
---
-
-ALTER SEQUENCE station_data.lut_region_idpk_region_seq OWNED BY station_data.lut_region.idpk_region;
-
-
---
--- TOC entry 298 (class 1259 OID 255063)
 -- Name: lut_station_idpk_station_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
 --
 
@@ -839,8 +895,6 @@ CREATE SEQUENCE station_data.lut_station_idpk_station_seq
 ALTER TABLE station_data.lut_station_idpk_station_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4950 (class 0 OID 0)
--- Dependencies: 298
 -- Name: lut_station_idpk_station_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
@@ -848,25 +902,56 @@ ALTER SEQUENCE station_data.lut_station_idpk_station_seq OWNED BY station_data.l
 
 
 --
--- TOC entry 299 (class 1259 OID 255065)
--- Name: raw_input; Type: TABLE; Schema: station_data; Owner: sauber_manager
+-- Name: tab_measurement; Type: TABLE; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE TABLE station_data.raw_input (
-    idpk_json integer NOT NULL,
-    json_payload jsonb NOT NULL,
-    json_message jsonb NOT NULL
+CREATE TABLE station_data.tab_measurement (
+    idpk_measurement bigint NOT NULL,
+    val double precision NOT NULL,
+    date_time timestamp without time zone NOT NULL,
+    fk_component integer NOT NULL,
+    fk_station integer NOT NULL
 );
 
 
-ALTER TABLE station_data.raw_input OWNER TO sauber_manager;
+ALTER TABLE station_data.tab_measurement OWNER TO sauber_manager;
 
 --
--- TOC entry 300 (class 1259 OID 255071)
--- Name: raw_input_idpk_json_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
+-- Name: pm10_latest_measurement; Type: VIEW; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE SEQUENCE station_data.raw_input_idpk_json_seq
+CREATE OR REPLACE VIEW station_data.pm10_latest_measurement AS
+SELECT
+  x.* 
+  FROM
+  (
+  SELECT
+    ROW_NUMBER() OVER () AS idpk, 
+    ROW_NUMBER() OVER(PARTITION BY s.station_name ORDER BY tab.date_time DESC) AS num_vals, 
+    s.station_name, tab.date_time, 
+    round(tab.val::NUMERIC, 1) AS val,
+    c.unit, 
+    c.component_name_short,
+    s.wkb_geometry
+  FROM
+    station_data.tab_measurement tab
+  JOIN station_data.lut_component c ON tab.fk_component = c.idpk_component
+  JOIN station_data.lut_station s ON tab.fk_station = s.idpk_station
+  WHERE c.component_name_short = 'PM10'::TEXT AND s.wkb_geometry IS NOT NULL 
+  ) x
+WHERE
+  x.num_vals <= 24
+ORDER BY
+  x.station_name ASC,
+  x.date_time DESC;
+
+ALTER TABLE station_data.pm10_latest_measurement OWNER TO sauber_manager;
+
+--
+-- Name: prediction_input_idpk_json_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
+--
+
+CREATE SEQUENCE station_data.prediction_input_idpk_json_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -875,24 +960,20 @@ CREATE SEQUENCE station_data.raw_input_idpk_json_seq
     CACHE 1;
 
 
-ALTER TABLE station_data.raw_input_idpk_json_seq OWNER TO sauber_manager;
+ALTER TABLE station_data.prediction_input_idpk_json_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4953 (class 0 OID 0)
--- Dependencies: 300
--- Name: raw_input_idpk_json_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
+-- Name: prediction_input_idpk_json_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER SEQUENCE station_data.raw_input_idpk_json_seq OWNED BY station_data.raw_input.idpk_json;
+ALTER SEQUENCE station_data.prediction_input_idpk_json_seq OWNED BY station_data.input_prediction.idpk_json;
 
 
 --
--- TOC entry 302 (class 1259 OID 255076)
--- Name: tab_prediction_idpk_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
+-- Name: tab_measurement_idpk_prediction_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE SEQUENCE station_data.tab_prediction_idpk_seq
-    AS integer
+CREATE SEQUENCE station_data.tab_measurement_idpk_prediction_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -900,24 +981,20 @@ CREATE SEQUENCE station_data.tab_prediction_idpk_seq
     CACHE 1;
 
 
-ALTER TABLE station_data.tab_prediction_idpk_seq OWNER TO sauber_manager;
+ALTER TABLE station_data.tab_measurement_idpk_prediction_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4955 (class 0 OID 0)
--- Dependencies: 302
--- Name: tab_prediction_idpk_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
+-- Name: tab_measurement_idpk_prediction_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER SEQUENCE station_data.tab_prediction_idpk_seq OWNED BY station_data.tab_measurement.idpk_prediction;
+ALTER SEQUENCE station_data.tab_measurement_idpk_prediction_seq OWNED BY station_data.tab_measurement.idpk_measurement;
 
 
 --
--- TOC entry 304 (class 1259 OID 255081)
--- Name: tab_value_idpk_value_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
+-- Name: tab_prediction_idpk_value_seq; Type: SEQUENCE; Schema: station_data; Owner: sauber_manager
 --
 
-CREATE SEQUENCE station_data.tab_value_idpk_value_seq
-    AS integer
+CREATE SEQUENCE station_data.tab_prediction_idpk_value_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -925,75 +1002,30 @@ CREATE SEQUENCE station_data.tab_value_idpk_value_seq
     CACHE 1;
 
 
-ALTER TABLE station_data.tab_value_idpk_value_seq OWNER TO sauber_manager;
+ALTER TABLE station_data.tab_prediction_idpk_value_seq OWNER TO sauber_manager;
 
 --
--- TOC entry 4956 (class 0 OID 0)
--- Dependencies: 304
--- Name: tab_value_idpk_value_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
+-- Name: tab_prediction_idpk_value_seq; Type: SEQUENCE OWNED BY; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER SEQUENCE station_data.tab_value_idpk_value_seq OWNED BY station_data.tab_prediction.idpk_value;
+ALTER SEQUENCE station_data.tab_prediction_idpk_value_seq OWNED BY station_data.tab_prediction.idpk_value;
 
 
 --
--- TOC entry 4613 (class 2604 OID 278209)
--- Name: _hyper_1_13_chunk idpk_value; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_demo fid; Type: DEFAULT; Schema: image_mosaics; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_13_chunk ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
-
-
---
--- TOC entry 4619 (class 2604 OID 279178)
--- Name: _hyper_1_16_chunk idpk_value; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_16_chunk ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
+ALTER TABLE ONLY image_mosaics.nrw_demo ALTER COLUMN fid SET DEFAULT nextval('image_mosaics.nrw_demo_fid_seq'::regclass);
 
 
 --
--- TOC entry 4592 (class 2604 OID 258002)
--- Name: _hyper_1_2_chunk idpk_value; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_pm10_gm1h24h fid; Type: DEFAULT; Schema: image_mosaics; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_2_chunk ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
-
-
---
--- TOC entry 4597 (class 2604 OID 269944)
--- Name: _hyper_1_8_chunk idpk_value; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_8_chunk ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
+ALTER TABLE ONLY image_mosaics.nrw_pm10_gm1h24h ALTER COLUMN fid SET DEFAULT nextval('image_mosaics.nrw_pm10_gm1h24h_fid_seq'::regclass);
 
 
 --
--- TOC entry 4599 (class 2604 OID 269969)
--- Name: _hyper_1_9_chunk idpk_value; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_9_chunk ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
-
-
---
--- TOC entry 4615 (class 2604 OID 278785)
--- Name: _hyper_2_14_chunk idpk_prediction; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_2_14_chunk ALTER COLUMN idpk_prediction SET DEFAULT nextval('station_data.tab_prediction_idpk_seq'::regclass);
-
-
---
--- TOC entry 4617 (class 2604 OID 278794)
--- Name: _hyper_2_15_chunk idpk_prediction; Type: DEFAULT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_2_15_chunk ALTER COLUMN idpk_prediction SET DEFAULT nextval('station_data.tab_prediction_idpk_seq'::regclass);
-
-
---
--- TOC entry 4594 (class 2604 OID 260701)
 -- Name: raster_metadata idpk_image; Type: DEFAULT; Schema: image_mosaics; Owner: sauber_manager
 --
 
@@ -1001,23 +1033,13 @@ ALTER TABLE ONLY image_mosaics.raster_metadata ALTER COLUMN idpk_image SET DEFAU
 
 
 --
--- TOC entry 4601 (class 2604 OID 270458)
--- Name: fc_nrw_pm10_gm1h24h_2020073004 rid; Type: DEFAULT; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
+-- Name: input_prediction idpk_json; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004 ALTER COLUMN rid SET DEFAULT nextval('nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004_rid_seq'::regclass);
-
-
---
--- TOC entry 4580 (class 2604 OID 255217)
--- Name: nrw_no2_2020010100 rid; Type: DEFAULT; Schema: raster_data; Owner: postgres
---
-
-ALTER TABLE ONLY raster_data.nrw_no2_2020010100 ALTER COLUMN rid SET DEFAULT nextval('raster_data.nrw_no2_2020010100_rid_seq'::regclass);
+ALTER TABLE ONLY station_data.input_prediction ALTER COLUMN idpk_json SET DEFAULT nextval('station_data.prediction_input_idpk_json_seq'::regclass);
 
 
 --
--- TOC entry 4573 (class 2604 OID 255083)
 -- Name: logtable idpk_log; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1025,7 +1047,6 @@ ALTER TABLE ONLY station_data.logtable ALTER COLUMN idpk_log SET DEFAULT nextval
 
 
 --
--- TOC entry 4574 (class 2604 OID 255084)
 -- Name: lut_component idpk_component; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1033,15 +1054,6 @@ ALTER TABLE ONLY station_data.lut_component ALTER COLUMN idpk_component SET DEFA
 
 
 --
--- TOC entry 4575 (class 2604 OID 255085)
--- Name: lut_region idpk_region; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
---
-
-ALTER TABLE ONLY station_data.lut_region ALTER COLUMN idpk_region SET DEFAULT nextval('station_data.lut_region_idpk_region_seq'::regclass);
-
-
---
--- TOC entry 4576 (class 2604 OID 255086)
 -- Name: lut_station idpk_station; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1049,94 +1061,36 @@ ALTER TABLE ONLY station_data.lut_station ALTER COLUMN idpk_station SET DEFAULT 
 
 
 --
--- TOC entry 4577 (class 2604 OID 255087)
--- Name: raw_input idpk_json; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
+-- Name: tab_measurement idpk_measurement; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY station_data.raw_input ALTER COLUMN idpk_json SET DEFAULT nextval('station_data.raw_input_idpk_json_seq'::regclass);
-
-
---
--- TOC entry 4578 (class 2604 OID 255088)
--- Name: tab_measurement idpk_prediction; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
---
-
-ALTER TABLE ONLY station_data.tab_measurement ALTER COLUMN idpk_prediction SET DEFAULT nextval('station_data.tab_prediction_idpk_seq'::regclass);
+ALTER TABLE ONLY station_data.tab_measurement ALTER COLUMN idpk_measurement SET DEFAULT nextval('station_data.tab_measurement_idpk_prediction_seq'::regclass);
 
 
 --
--- TOC entry 4579 (class 2604 OID 255089)
 -- Name: tab_prediction idpk_value; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY station_data.tab_prediction ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_value_idpk_value_seq'::regclass);
+ALTER TABLE ONLY station_data.tab_prediction ALTER COLUMN idpk_value SET DEFAULT nextval('station_data.tab_prediction_idpk_value_seq'::regclass);
 
 
 --
--- TOC entry 4742 (class 2606 OID 278230)
--- Name: _hyper_1_13_chunk 13_52_tab_prediction_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_demo nrw_demo_pkey; Type: CONSTRAINT; Schema: image_mosaics; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_13_chunk
-    ADD CONSTRAINT "13_52_tab_prediction_pk" PRIMARY KEY (idpk_value, date_time);
-
-
---
--- TOC entry 4750 (class 2606 OID 278788)
--- Name: _hyper_2_14_chunk 14_53_tab_meas_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_2_14_chunk
-    ADD CONSTRAINT "14_53_tab_meas_pk" PRIMARY KEY (idpk_prediction, date_time);
+ALTER TABLE ONLY image_mosaics.nrw_demo
+    ADD CONSTRAINT nrw_demo_pkey PRIMARY KEY (fid);
 
 
 --
--- TOC entry 4754 (class 2606 OID 278797)
--- Name: _hyper_2_15_chunk 15_54_tab_meas_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: nrw_pm10_gm1h24h nrw_pm10_gm1h24h_pkey; Type: CONSTRAINT; Schema: image_mosaics; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY _timescaledb_internal._hyper_2_15_chunk
-    ADD CONSTRAINT "15_54_tab_meas_pk" PRIMARY KEY (idpk_prediction, date_time);
-
-
---
--- TOC entry 4758 (class 2606 OID 279199)
--- Name: _hyper_1_16_chunk 16_58_tab_prediction_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_16_chunk
-    ADD CONSTRAINT "16_58_tab_prediction_pk" PRIMARY KEY (idpk_value, date_time);
+ALTER TABLE ONLY image_mosaics.nrw_pm10_gm1h24h
+    ADD CONSTRAINT nrw_pm10_gm1h24h_pkey PRIMARY KEY (fid);
 
 
 --
--- TOC entry 4723 (class 2606 OID 269962)
--- Name: _hyper_1_8_chunk 8_32_tab_prediction_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_8_chunk
-    ADD CONSTRAINT "8_32_tab_prediction_pk" PRIMARY KEY (idpk_value, date_time);
-
-
---
--- TOC entry 4731 (class 2606 OID 269987)
--- Name: _hyper_1_9_chunk 9_36_tab_prediction_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_9_chunk
-    ADD CONSTRAINT "9_36_tab_prediction_pk" PRIMARY KEY (idpk_value, date_time);
-
-
---
--- TOC entry 4719 (class 2606 OID 258020)
--- Name: _hyper_1_2_chunk _hyper_1_2_chunk_tab_prediction_pk; Type: CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_2_chunk
-    ADD CONSTRAINT _hyper_1_2_chunk_tab_prediction_pk PRIMARY KEY (idpk_value, date_time);
-
-
---
--- TOC entry 4721 (class 2606 OID 260708)
 -- Name: raster_metadata raster_metadata_pkey; Type: CONSTRAINT; Schema: image_mosaics; Owner: sauber_manager
 --
 
@@ -1145,52 +1099,30 @@ ALTER TABLE ONLY image_mosaics.raster_metadata
 
 
 --
--- TOC entry 4603 (class 2606 OID 270493)
--- Name: fc_nrw_pm10_gm1h24h_2020073004 enforce_max_extent_rast; Type: CHECK CONSTRAINT; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
+-- Name: raster_metadata raster_metadata_uq_path; Type: CONSTRAINT; Schema: image_mosaics; Owner: sauber_manager
 --
 
-ALTER TABLE nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004
-    ADD CONSTRAINT enforce_max_extent_rast CHECK ((public.st_envelope(rast) OPERATOR(public.@) '0103000020E8640000010000000500000000000000000000000000000000806EC0000000000000000000000000000000000000000000806F4000000000000000000000000000806F400000000000806EC000000000000000000000000000806EC0'::public.geometry)) NOT VALID;
-
-
---
--- TOC entry 4739 (class 2606 OID 270463)
--- Name: fc_nrw_pm10_gm1h24h_2020073004 fc_nrw_pm10_gm1h24h_2020073004_pkey; Type: CONSTRAINT; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
---
-
-ALTER TABLE ONLY nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004
-    ADD CONSTRAINT fc_nrw_pm10_gm1h24h_2020073004_pkey PRIMARY KEY (rid);
+ALTER TABLE ONLY image_mosaics.raster_metadata
+    ADD CONSTRAINT raster_metadata_uq_path UNIQUE (image_path);
 
 
 --
--- TOC entry 4582 (class 2606 OID 255284)
--- Name: nrw_no2_2020010100 enforce_max_extent_rast; Type: CHECK CONSTRAINT; Schema: raster_data; Owner: postgres
+-- Name: gt_pk_metadata gt_pk_metadata_pkey; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE raster_data.nrw_no2_2020010100
-    ADD CONSTRAINT enforce_max_extent_rast CHECK ((public.st_envelope(rast) OPERATOR(public.@) '0103000020E61000000100000005000000705F072EF3052F4173D7122A76C75741705F072EF3052F41E8D9AC8A05D257412FDD240618692F41E8D9AC8A05D257412FDD240618692F4173D7122A76C75741705F072EF3052F4173D7122A76C75741'::public.geometry)) NOT VALID;
-
-
---
--- TOC entry 4710 (class 2606 OID 255222)
--- Name: nrw_no2_2020010100 nrw_no2_2020010100_pkey; Type: CONSTRAINT; Schema: raster_data; Owner: postgres
---
-
-ALTER TABLE ONLY raster_data.nrw_no2_2020010100
-    ADD CONSTRAINT nrw_no2_2020010100_pkey PRIMARY KEY (rid);
+ALTER TABLE ONLY station_data.gt_pk_metadata
+    ADD CONSTRAINT gt_pk_metadata_pkey PRIMARY KEY (table_schema, table_name, pk_column);
 
 
 --
--- TOC entry 4685 (class 2606 OID 255091)
--- Name: logtable logtable_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
+-- Name: logtable logtable_pkey; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
 ALTER TABLE ONLY station_data.logtable
-    ADD CONSTRAINT logtable_pk PRIMARY KEY (idpk_log);
+    ADD CONSTRAINT logtable_pkey PRIMARY KEY (idpk_log);
 
 
 --
--- TOC entry 4687 (class 2606 OID 255093)
 -- Name: lut_component lut_component_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1199,16 +1131,14 @@ ALTER TABLE ONLY station_data.lut_component
 
 
 --
--- TOC entry 4690 (class 2606 OID 255095)
--- Name: lut_region lut_region_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
+-- Name: lut_component lut_component_uq_name; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY station_data.lut_region
-    ADD CONSTRAINT lut_region_pk PRIMARY KEY (idpk_region);
+ALTER TABLE ONLY station_data.lut_component
+    ADD CONSTRAINT lut_component_uq_name UNIQUE (component_name);
 
 
 --
--- TOC entry 4693 (class 2606 OID 255097)
 -- Name: lut_station lut_station_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1217,25 +1147,38 @@ ALTER TABLE ONLY station_data.lut_station
 
 
 --
--- TOC entry 4696 (class 2606 OID 255099)
--- Name: raw_input raw_input_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
+-- Name: lut_station lut_station_uq_code; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
-ALTER TABLE ONLY station_data.raw_input
+ALTER TABLE ONLY station_data.lut_station
+    ADD CONSTRAINT lut_station_uq_code UNIQUE (station_code);
+
+
+--
+-- Name: input_prediction raw_input_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
+--
+
+ALTER TABLE ONLY station_data.input_prediction
     ADD CONSTRAINT raw_input_pk PRIMARY KEY (idpk_json);
 
 
 --
--- TOC entry 4700 (class 2606 OID 255101)
 -- Name: tab_measurement tab_meas_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
 ALTER TABLE ONLY station_data.tab_measurement
-    ADD CONSTRAINT tab_meas_pk PRIMARY KEY (idpk_prediction, date_time);
+    ADD CONSTRAINT tab_meas_pk PRIMARY KEY (idpk_measurement, date_time);
 
 
 --
--- TOC entry 4708 (class 2606 OID 255103)
+-- Name: tab_measurement tab_measurement_un; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
+--
+
+ALTER TABLE ONLY station_data.tab_measurement
+    ADD CONSTRAINT tab_measurement_un UNIQUE (fk_station, date_time, fk_component);
+
+
+--
 -- Name: tab_prediction tab_prediction_pk; Type: CONSTRAINT; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1244,295 +1187,20 @@ ALTER TABLE ONLY station_data.tab_prediction
 
 
 --
--- TOC entry 4743 (class 1259 OID 278231)
--- Name: _hyper_1_13_chunk_idx_dt_desc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: spatial_nrw_demo_the_geom; Type: INDEX; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE INDEX _hyper_1_13_chunk_idx_dt_desc ON _timescaledb_internal._hyper_1_13_chunk USING btree (date_time DESC);
+CREATE INDEX spatial_nrw_demo_the_geom ON image_mosaics.nrw_demo USING gist (the_geom);
 
 
 --
--- TOC entry 4744 (class 1259 OID 278232)
--- Name: _hyper_1_13_chunk_idx_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
+-- Name: spatial_nrw_pm10_gm1h24h_the_geom; Type: INDEX; Schema: image_mosaics; Owner: sauber_manager
 --
 
-CREATE INDEX _hyper_1_13_chunk_idx_dt_desc_lut_asc ON _timescaledb_internal._hyper_1_13_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
+CREATE INDEX spatial_nrw_pm10_gm1h24h_the_geom ON image_mosaics.nrw_pm10_gm1h24h USING gist (the_geom);
 
 
 --
--- TOC entry 4745 (class 1259 OID 281237)
--- Name: _hyper_1_13_chunk_idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_13_chunk_idx_dt_desc_lut_asc_temp ON _timescaledb_internal._hyper_1_13_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4746 (class 1259 OID 281231)
--- Name: _hyper_1_13_chunk_idx_dt_desc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_13_chunk_idx_dt_desc_temp ON _timescaledb_internal._hyper_1_13_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4747 (class 1259 OID 278233)
--- Name: _hyper_1_13_chunk_idx_uq_val_dt_lut; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_13_chunk_idx_uq_val_dt_lut ON _timescaledb_internal._hyper_1_13_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4748 (class 1259 OID 281243)
--- Name: _hyper_1_13_chunk_idx_uq_val_dt_lut_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_13_chunk_idx_uq_val_dt_lut_temp ON _timescaledb_internal._hyper_1_13_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4759 (class 1259 OID 279200)
--- Name: _hyper_1_16_chunk_idx_dt_desc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_16_chunk_idx_dt_desc ON _timescaledb_internal._hyper_1_16_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4760 (class 1259 OID 279201)
--- Name: _hyper_1_16_chunk_idx_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_16_chunk_idx_dt_desc_lut_asc ON _timescaledb_internal._hyper_1_16_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4761 (class 1259 OID 281238)
--- Name: _hyper_1_16_chunk_idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_16_chunk_idx_dt_desc_lut_asc_temp ON _timescaledb_internal._hyper_1_16_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4762 (class 1259 OID 281232)
--- Name: _hyper_1_16_chunk_idx_dt_desc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_16_chunk_idx_dt_desc_temp ON _timescaledb_internal._hyper_1_16_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4763 (class 1259 OID 279202)
--- Name: _hyper_1_16_chunk_idx_uq_val_dt_lut; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_16_chunk_idx_uq_val_dt_lut ON _timescaledb_internal._hyper_1_16_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4764 (class 1259 OID 281244)
--- Name: _hyper_1_16_chunk_idx_uq_val_dt_lut_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_16_chunk_idx_uq_val_dt_lut_temp ON _timescaledb_internal._hyper_1_16_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4712 (class 1259 OID 258021)
--- Name: _hyper_1_2_chunk_idx_dt_desc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_2_chunk_idx_dt_desc ON _timescaledb_internal._hyper_1_2_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4713 (class 1259 OID 258022)
--- Name: _hyper_1_2_chunk_idx_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_2_chunk_idx_dt_desc_lut_asc ON _timescaledb_internal._hyper_1_2_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4714 (class 1259 OID 281234)
--- Name: _hyper_1_2_chunk_idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_2_chunk_idx_dt_desc_lut_asc_temp ON _timescaledb_internal._hyper_1_2_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4715 (class 1259 OID 281228)
--- Name: _hyper_1_2_chunk_idx_dt_desc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_2_chunk_idx_dt_desc_temp ON _timescaledb_internal._hyper_1_2_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4716 (class 1259 OID 258023)
--- Name: _hyper_1_2_chunk_idx_uq_val_dt_lut; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_2_chunk_idx_uq_val_dt_lut ON _timescaledb_internal._hyper_1_2_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4717 (class 1259 OID 281240)
--- Name: _hyper_1_2_chunk_idx_uq_val_dt_lut_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_2_chunk_idx_uq_val_dt_lut_temp ON _timescaledb_internal._hyper_1_2_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4724 (class 1259 OID 269963)
--- Name: _hyper_1_8_chunk_idx_dt_desc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_8_chunk_idx_dt_desc ON _timescaledb_internal._hyper_1_8_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4725 (class 1259 OID 269964)
--- Name: _hyper_1_8_chunk_idx_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_8_chunk_idx_dt_desc_lut_asc ON _timescaledb_internal._hyper_1_8_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4726 (class 1259 OID 281235)
--- Name: _hyper_1_8_chunk_idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_8_chunk_idx_dt_desc_lut_asc_temp ON _timescaledb_internal._hyper_1_8_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4727 (class 1259 OID 281229)
--- Name: _hyper_1_8_chunk_idx_dt_desc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_8_chunk_idx_dt_desc_temp ON _timescaledb_internal._hyper_1_8_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4728 (class 1259 OID 269965)
--- Name: _hyper_1_8_chunk_idx_uq_val_dt_lut; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_8_chunk_idx_uq_val_dt_lut ON _timescaledb_internal._hyper_1_8_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4729 (class 1259 OID 281241)
--- Name: _hyper_1_8_chunk_idx_uq_val_dt_lut_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_8_chunk_idx_uq_val_dt_lut_temp ON _timescaledb_internal._hyper_1_8_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4732 (class 1259 OID 269988)
--- Name: _hyper_1_9_chunk_idx_dt_desc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_9_chunk_idx_dt_desc ON _timescaledb_internal._hyper_1_9_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4733 (class 1259 OID 269989)
--- Name: _hyper_1_9_chunk_idx_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_9_chunk_idx_dt_desc_lut_asc ON _timescaledb_internal._hyper_1_9_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4734 (class 1259 OID 281236)
--- Name: _hyper_1_9_chunk_idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_9_chunk_idx_dt_desc_lut_asc_temp ON _timescaledb_internal._hyper_1_9_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4735 (class 1259 OID 281230)
--- Name: _hyper_1_9_chunk_idx_dt_desc_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_1_9_chunk_idx_dt_desc_temp ON _timescaledb_internal._hyper_1_9_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4736 (class 1259 OID 269990)
--- Name: _hyper_1_9_chunk_idx_uq_val_dt_lut; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_9_chunk_idx_uq_val_dt_lut ON _timescaledb_internal._hyper_1_9_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4737 (class 1259 OID 281242)
--- Name: _hyper_1_9_chunk_idx_uq_val_dt_lut_temp; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX _hyper_1_9_chunk_idx_uq_val_dt_lut_temp ON _timescaledb_internal._hyper_1_9_chunk USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4751 (class 1259 OID 278789)
--- Name: _hyper_2_14_chunk_idx_meas_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_2_14_chunk_idx_meas_dt_desc_lut_asc ON _timescaledb_internal._hyper_2_14_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4752 (class 1259 OID 278790)
--- Name: _hyper_2_14_chunk_tab_meas_date_time_idx; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_2_14_chunk_tab_meas_date_time_idx ON _timescaledb_internal._hyper_2_14_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4755 (class 1259 OID 278798)
--- Name: _hyper_2_15_chunk_idx_meas_dt_desc_lut_asc; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_2_15_chunk_idx_meas_dt_desc_lut_asc ON _timescaledb_internal._hyper_2_15_chunk USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4756 (class 1259 OID 278799)
--- Name: _hyper_2_15_chunk_tab_meas_date_time_idx; Type: INDEX; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-CREATE INDEX _hyper_2_15_chunk_tab_meas_date_time_idx ON _timescaledb_internal._hyper_2_15_chunk USING btree (date_time DESC);
-
-
---
--- TOC entry 4740 (class 1259 OID 270482)
--- Name: fc_nrw_pm10_gm1h24h_2020073004_st_convexhull_idx; Type: INDEX; Schema: nrw_pm10_gm1h24h; Owner: sauber_user
---
-
-CREATE INDEX fc_nrw_pm10_gm1h24h_2020073004_st_convexhull_idx ON nrw_pm10_gm1h24h.fc_nrw_pm10_gm1h24h_2020073004 USING gist (public.st_convexhull(rast));
-
-
---
--- TOC entry 4711 (class 1259 OID 255273)
--- Name: nrw_no2_2020010100_st_convexhull_idx; Type: INDEX; Schema: raster_data; Owner: postgres
---
-
-CREATE INDEX nrw_no2_2020010100_st_convexhull_idx ON raster_data.nrw_no2_2020010100 USING gist (public.st_convexhull(rast));
-
-
---
--- TOC entry 4701 (class 1259 OID 255104)
 -- Name: idx_dt_desc; Type: INDEX; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1540,23 +1208,6 @@ CREATE INDEX idx_dt_desc ON station_data.tab_prediction USING btree (date_time D
 
 
 --
--- TOC entry 4702 (class 1259 OID 255105)
--- Name: idx_dt_desc_lut_asc; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE INDEX idx_dt_desc_lut_asc ON station_data.tab_prediction USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4703 (class 1259 OID 281233)
--- Name: idx_dt_desc_lut_asc_temp; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE INDEX idx_dt_desc_lut_asc_temp ON station_data.tab_prediction USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4704 (class 1259 OID 281227)
 -- Name: idx_dt_desc_temp; Type: INDEX; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1564,31 +1215,6 @@ CREATE INDEX idx_dt_desc_temp ON station_data.tab_prediction USING btree (date_t
 
 
 --
--- TOC entry 4697 (class 1259 OID 255106)
--- Name: idx_meas_dt_desc_lut_asc; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE INDEX idx_meas_dt_desc_lut_asc ON station_data.tab_measurement USING btree (date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4705 (class 1259 OID 255107)
--- Name: idx_uq_val_dt_lut; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX idx_uq_val_dt_lut ON station_data.tab_prediction USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4706 (class 1259 OID 281239)
--- Name: idx_uq_val_dt_lut_temp; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX idx_uq_val_dt_lut_temp ON station_data.tab_prediction USING btree (val, date_time DESC, fk_component, fk_station, fk_region);
-
-
---
--- TOC entry 4698 (class 1259 OID 255140)
 -- Name: tab_meas_date_time_idx; Type: INDEX; Schema: station_data; Owner: sauber_manager
 --
 
@@ -1596,376 +1222,191 @@ CREATE INDEX tab_meas_date_time_idx ON station_data.tab_measurement USING btree 
 
 
 --
--- TOC entry 4688 (class 1259 OID 258044)
--- Name: uq_name_component; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX uq_name_component ON station_data.lut_component USING btree (name_component);
-
-
---
--- TOC entry 4691 (class 1259 OID 258043)
--- Name: uq_name_region; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX uq_name_region ON station_data.lut_region USING btree (name_region);
-
-
---
--- TOC entry 4694 (class 1259 OID 258042)
--- Name: uq_name_station; Type: INDEX; Schema: station_data; Owner: sauber_manager
---
-
-CREATE UNIQUE INDEX uq_name_station ON station_data.lut_station USING btree (name_station);
-
-ALTER TABLE station_data.lut_station CLUSTER ON uq_name_station;
-
-
---
--- TOC entry 4784 (class 2620 OID 255138)
--- Name: tab_prediction ts_insert_blocker; Type: TRIGGER; Schema: station_data; Owner: sauber_manager
---
-
-CREATE TRIGGER ts_insert_blocker BEFORE INSERT ON station_data.tab_prediction FOR EACH ROW EXECUTE PROCEDURE _timescaledb_internal.insert_blocker();
-
-
---
--- TOC entry 4783 (class 2620 OID 255139)
--- Name: tab_measurement ts_insert_blocker; Type: TRIGGER; Schema: station_data; Owner: sauber_manager
---
-
-CREATE TRIGGER ts_insert_blocker BEFORE INSERT ON station_data.tab_measurement FOR EACH ROW EXECUTE PROCEDURE _timescaledb_internal.insert_blocker();
-
-
---
--- TOC entry 4777 (class 2606 OID 278214)
--- Name: _hyper_1_13_chunk 13_49_fk_lut_component; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_13_chunk
-    ADD CONSTRAINT "13_49_fk_lut_component" FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4778 (class 2606 OID 278219)
--- Name: _hyper_1_13_chunk 13_50_fk_lut_region; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_13_chunk
-    ADD CONSTRAINT "13_50_fk_lut_region" FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4779 (class 2606 OID 278224)
--- Name: _hyper_1_13_chunk 13_51_fk_lut_station; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_13_chunk
-    ADD CONSTRAINT "13_51_fk_lut_station" FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4780 (class 2606 OID 279183)
--- Name: _hyper_1_16_chunk 16_55_fk_lut_component; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_16_chunk
-    ADD CONSTRAINT "16_55_fk_lut_component" FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4781 (class 2606 OID 279188)
--- Name: _hyper_1_16_chunk 16_56_fk_lut_region; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_16_chunk
-    ADD CONSTRAINT "16_56_fk_lut_region" FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4782 (class 2606 OID 279193)
--- Name: _hyper_1_16_chunk 16_57_fk_lut_station; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_16_chunk
-    ADD CONSTRAINT "16_57_fk_lut_station" FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4768 (class 2606 OID 258004)
--- Name: _hyper_1_2_chunk 2_5_fk_lut_component; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_2_chunk
-    ADD CONSTRAINT "2_5_fk_lut_component" FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4769 (class 2606 OID 258009)
--- Name: _hyper_1_2_chunk 2_6_fk_lut_region; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_2_chunk
-    ADD CONSTRAINT "2_6_fk_lut_region" FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4770 (class 2606 OID 258014)
--- Name: _hyper_1_2_chunk 2_7_fk_lut_station; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_2_chunk
-    ADD CONSTRAINT "2_7_fk_lut_station" FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4771 (class 2606 OID 269946)
--- Name: _hyper_1_8_chunk 8_29_fk_lut_component; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_8_chunk
-    ADD CONSTRAINT "8_29_fk_lut_component" FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4772 (class 2606 OID 269951)
--- Name: _hyper_1_8_chunk 8_30_fk_lut_region; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_8_chunk
-    ADD CONSTRAINT "8_30_fk_lut_region" FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4773 (class 2606 OID 269956)
--- Name: _hyper_1_8_chunk 8_31_fk_lut_station; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_8_chunk
-    ADD CONSTRAINT "8_31_fk_lut_station" FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4774 (class 2606 OID 269971)
--- Name: _hyper_1_9_chunk 9_33_fk_lut_component; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_9_chunk
-    ADD CONSTRAINT "9_33_fk_lut_component" FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4775 (class 2606 OID 269976)
--- Name: _hyper_1_9_chunk 9_34_fk_lut_region; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_9_chunk
-    ADD CONSTRAINT "9_34_fk_lut_region" FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4776 (class 2606 OID 269981)
--- Name: _hyper_1_9_chunk 9_35_fk_lut_station; Type: FK CONSTRAINT; Schema: _timescaledb_internal; Owner: sauber_manager
---
-
-ALTER TABLE ONLY _timescaledb_internal._hyper_1_9_chunk
-    ADD CONSTRAINT "9_35_fk_lut_station" FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4765 (class 2606 OID 255113)
--- Name: tab_prediction fk_lut_component; Type: FK CONSTRAINT; Schema: station_data; Owner: sauber_manager
---
-
-ALTER TABLE ONLY station_data.tab_prediction
-    ADD CONSTRAINT fk_lut_component FOREIGN KEY (fk_component) REFERENCES station_data.lut_component(idpk_component);
-
-
---
--- TOC entry 4766 (class 2606 OID 255123)
--- Name: tab_prediction fk_lut_region; Type: FK CONSTRAINT; Schema: station_data; Owner: sauber_manager
---
-
-ALTER TABLE ONLY station_data.tab_prediction
-    ADD CONSTRAINT fk_lut_region FOREIGN KEY (fk_region) REFERENCES station_data.lut_region(idpk_region);
-
-
---
--- TOC entry 4767 (class 2606 OID 255133)
--- Name: tab_prediction fk_lut_station; Type: FK CONSTRAINT; Schema: station_data; Owner: sauber_manager
---
-
-ALTER TABLE ONLY station_data.tab_prediction
-    ADD CONSTRAINT fk_lut_station FOREIGN KEY (fk_station) REFERENCES station_data.lut_station(idpk_station);
-
-
---
--- TOC entry 4927 (class 0 OID 0)
--- Dependencies: 4926
--- Name: DATABASE sauber_data; Type: ACL; Schema: -; Owner: sauber_manager
---
-
-
-
-
---
--- TOC entry 4929 (class 0 OID 0)
--- Dependencies: 28
--- Name: SCHEMA station_data; Type: ACL; Schema: -; Owner: sauber_manager
---
-
-
-
-
---
--- TOC entry 4931 (class 0 OID 0)
--- Dependencies: 30
 -- Name: SCHEMA image_mosaics; Type: ACL; Schema: -; Owner: sauber_manager
 --
 
-
-
-
---
--- TOC entry 4933 (class 0 OID 0)
--- Dependencies: 1662
--- Name: FUNCTION parse_json(); Type: ACL; Schema: station_data; Owner: postgres
---
-
-
+GRANT USAGE ON SCHEMA image_mosaics TO sauber_user;
+GRANT USAGE ON SCHEMA image_mosaics TO app;
+GRANT USAGE ON SCHEMA image_mosaics TO anon;
 
 
 --
--- TOC entry 4934 (class 0 OID 0)
--- Dependencies: 303
--- Name: TABLE tab_prediction; Type: ACL; Schema: station_data; Owner: sauber_manager
+-- Name: SCHEMA station_data; Type: ACL; Schema: -; Owner: sauber_manager
 --
 
+GRANT USAGE ON SCHEMA station_data TO app;
+GRANT USAGE ON SCHEMA station_data TO sauber_user;
 
+--
+-- Name: FUNCTION createlogentry(pload jsonb); Type: ACL; Schema: station_data; Owner: sauber_manager
+--
 
+GRANT EXECUTE ON FUNCTION station_data.createlogentry(pload jsonb) TO app;
 
 
 --
--- TOC entry 4935 (class 0 OID 0)
--- Dependencies: 309
+-- Name: FUNCTION lanuv_parse(input_ts text); Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT EXECUTE ON FUNCTION station_data.lanuv_parse(input_ts text) TO app;
+
+
+--
+-- Name: FUNCTION lubw_parse(); Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT EXECUTE ON FUNCTION station_data.lubw_parse() TO app;
+
+
+--
+-- Name: FUNCTION prediction_parse(); Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT EXECUTE ON FUNCTION station_data.prediction_parse() TO app;
+
+
+--
 -- Name: TABLE raster_metadata; Type: ACL; Schema: image_mosaics; Owner: sauber_manager
 --
 
-
+GRANT SELECT,INSERT,UPDATE ON TABLE image_mosaics.raster_metadata TO app;
+GRANT SELECT,UPDATE ON TABLE image_mosaics.raster_metadata TO anon;
+GRANT SELECT ON TABLE image_mosaics.raster_metadata TO sauber_user;
 
 
 --
--- TOC entry 4937 (class 0 OID 0)
--- Dependencies: 308
 -- Name: SEQUENCE raster_metadata_idpk_image_seq; Type: ACL; Schema: image_mosaics; Owner: sauber_manager
 --
 
-
+GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO sauber_user;
+GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO anon;
+GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO app;
 
 
 --
--- TOC entry 4940 (class 0 OID 0)
--- Dependencies: 293
 -- Name: TABLE lut_component; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
+GRANT SELECT,INSERT,UPDATE ON TABLE station_data.lut_component TO app;
+GRANT SELECT ON TABLE station_data.lut_component TO sauber_user;
 
 
 --
--- TOC entry 4941 (class 0 OID 0)
--- Dependencies: 297
 -- Name: TABLE lut_station; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
-
+GRANT SELECT,INSERT,UPDATE ON TABLE station_data.lut_station TO app;
+GRANT SELECT ON TABLE station_data.lut_station TO sauber_user;
 
 --
--- TOC entry 4942 (class 0 OID 0)
--- Dependencies: 291
+-- Name: TABLE tab_prediction; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT SELECT,INSERT, UPDATE ON TABLE station_data.tab_prediction TO app;
+GRANT SELECT ON TABLE station_data.tab_prediction TO sauber_user;
+
+--
+-- Name: TABLE input_lanuv; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT ALL ON TABLE station_data.input_lanuv TO app;
+GRANT SELECT ON TABLE station_data.input_lanuv TO sauber_user;
+
+--
+-- Name: TABLE input_lubw; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT ALL ON TABLE station_data.input_lubw TO app;
+
+--
+-- Name: TABLE input_prediction; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT ALL ON TABLE station_data.input_prediction TO app;
+
+--
 -- Name: TABLE logtable; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
+GRANT SELECT,INSERT,UPDATE ON TABLE station_data.logtable TO app;
+GRANT SELECT ON TABLE station_data.logtable TO sauber_user;
 
 
 --
--- TOC entry 4944 (class 0 OID 0)
--- Dependencies: 292
 -- Name: SEQUENCE logtable_idpk_log_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
+GRANT ALL ON SEQUENCE station_data.logtable_idpk_log_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.logtable_idpk_log_seq TO sauber_user;
 
 
 --
--- TOC entry 4946 (class 0 OID 0)
--- Dependencies: 294
 -- Name: SEQUENCE lut_component_idpk_component_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
-
-
---
--- TOC entry 4947 (class 0 OID 0)
--- Dependencies: 295
--- Name: TABLE lut_region; Type: ACL; Schema: station_data; Owner: sauber_manager
---
-
-
+GRANT ALL ON SEQUENCE station_data.lut_component_idpk_component_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.lut_component_idpk_component_seq TO sauber_user;
 
 
 --
--- TOC entry 4949 (class 0 OID 0)
--- Dependencies: 296
--- Name: SEQUENCE lut_region_idpk_region_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
---
-
-
-
-
---
--- TOC entry 4951 (class 0 OID 0)
--- Dependencies: 298
 -- Name: SEQUENCE lut_station_idpk_station_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
-
-
---
--- TOC entry 4952 (class 0 OID 0)
--- Dependencies: 299
--- Name: TABLE raw_input; Type: ACL; Schema: station_data; Owner: sauber_manager
---
-
-
-
+GRANT ALL ON SEQUENCE station_data.lut_station_idpk_station_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.lut_station_idpk_station_seq TO sauber_user;
 
 
 --
--- TOC entry 4954 (class 0 OID 0)
--- Dependencies: 300
--- Name: SEQUENCE raw_input_idpk_json_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
+-- Name: TABLE tab_measurement; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
-
+GRANT SELECT,INSERT,UPDATE ON TABLE station_data.tab_measurement TO app;
+GRANT SELECT ON TABLE station_data.tab_measurement TO sauber_user;
 
 
 --
--- TOC entry 4957 (class 0 OID 0)
--- Dependencies: 304
--- Name: SEQUENCE tab_value_idpk_value_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
+-- Name: SEQUENCE prediction_input_idpk_json_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
 --
 
+GRANT ALL ON SEQUENCE station_data.prediction_input_idpk_json_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.prediction_input_idpk_json_seq TO sauber_user;
 
-
-
--- Completed on 2020-09-11 17:17:34
 
 --
--- PostgreSQL database dump complete
+-- Name: SEQUENCE tab_measurement_idpk_prediction_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT ALL ON SEQUENCE station_data.tab_measurement_idpk_prediction_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.tab_measurement_idpk_prediction_seq TO sauber_user;
+
+
+--
+-- Name: SEQUENCE tab_prediction_idpk_value_seq; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT ALL ON SEQUENCE station_data.tab_prediction_idpk_value_seq TO app;
+GRANT USAGE,SELECT ON SEQUENCE station_data.tab_prediction_idpk_value_seq TO sauber_user;
+
+
+--
+-- Name: VIEW fv_wfs; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT SELECT,INSERT,UPDATE ON TABLE station_data.lut_station TO app;
+GRANT SELECT ON TABLE station_data.lut_station TO sauber_user;
+
+--
+-- Name: VIEW fv_wfs; Type: ACL; Schema: station_data; Owner: sauber_manager
+--
+
+GRANT SELECT ON TABLE station_data.fv_wfs TO sauber_user;
+
+SELECT create_hypertable('station_data.tab_prediction','date_time');
+SELECT create_hypertable('station_data.tab_measurement','date_time'); 
+
+ALTER DATABASE sauber_data OWNER TO sauber_manager;
+
+--
+-- sauber_managerQL database dump complete
 --
 
