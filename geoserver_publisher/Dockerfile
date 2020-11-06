@@ -12,6 +12,7 @@ WORKDIR /opt
 RUN npm install --only=production
 
 # copy JS sources
+COPY  /gs-img-mosaic-tpl/ /opt/gs-img-mosaic-tpl/
 COPY  /js-utils/logging.js /opt/js-utils/logging.js
 COPY  /js-utils/docker-secrets.js /opt/js-utils/docker-secrets.js
 COPY  /index.js /opt/index.js

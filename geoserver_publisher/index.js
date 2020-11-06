@@ -7,6 +7,8 @@ import fetch from 'node-fetch';
 import GeoServerRestClient from 'geoserver-node-client';
 import {framedBigLogging, framedMediumLogging} from './js-utils/logging.js';
 import dockerSecret from './js-utils/docker-secrets.js';
+import fs from 'fs';
+import {exec} from 'child_process';
 
 const verbose = process.env.GSPUB_VERBOSE;
 
@@ -27,9 +29,6 @@ const geoserverPw = dockerSecret.read('geoserver_password.txt') || process.env.G
 verboseLogging('GeoServer REST URL: ', geoserverUrl);
 verboseLogging('GeoServer REST User:', geoserverUser);
 verboseLogging('GeoServer REST PW:  ', geoserverPw);
-
-// array with blacklisted (mostly non existing) CoverageStores
-const ignoreCovStores = [];
 
 /**
  * Main process:
@@ -72,8 +71,7 @@ async function publishRasters() {
 
 /**
  * Checks if GeoServer has the CoverageStore given in the raster meta info.
- * If not it is added to the ignoreCovStores array so it can be ignored in the
- * process.
+ * If not it is created in GeoServer by its REST-API.
  *
  * @param {Object} rasterMetaInf
  */
@@ -86,8 +84,40 @@ async function checkIfCoverageStoresExist(rasterMetaInf) {
   const covStoreObj = await grc.datastores.getCoverageStore(ws, covStore);
 
   if (!covStoreObj) {
-    console.error('CoverageStore', covStore, 'does not exist. Ensure this is created in advance.');
-    ignoreCovStores.push(covStore);
+    console.info('CoverageStore', covStore, 'does not exist. Try to create it ...');
+
+    const indexerFile = process.cwd() + '/gs-img-mosaic-tpl/indexer.properties.tpl';
+    const indexerFileCopy = process.cwd() + '/gs-img-mosaic-tpl/indexer.properties';
+    // copy indexer template so we can modify
+    fs.copyFileSync(indexerFile, indexerFileCopy);
+    console.info(`${indexerFile} was copied to ${indexerFileCopy}`);
+
+    // matches the filename of the aboslute file path
+    // /opt/raster_data/foo.tiff => foo.tiff
+    const regex = /\/[^/]*?\.\S*/gm;
+    const rasterFile = rasterMetaInf.image_path;
+    // getting the file path only by substitution of filename with nothing
+    const mosaicPath = rasterFile.replace(regex, '');
+
+    // seth path to rasters in indexer.properties
+    const indexingDirText = '\nIndexingDirectories=' + mosaicPath;
+    fs.appendFileSync(indexerFileCopy, indexingDirText);
+
+    // zip image mosaic properties config files
+    const fileToZip = [
+      'gs-img-mosaic-tpl/indexer.properties',
+      'gs-img-mosaic-tpl/datastore.properties',
+      'gs-img-mosaic-tpl/timeregex.properties'
+    ];
+    const zipPath = '/tmp/init.zip';
+    const zipOut = await execShellCommand('zip -j ' + zipPath + ' ' + fileToZip.join(' '));
+    console.log(zipOut);
+
+    // TODO ensure the zip is available in GeoServer container
+
+    await grc.datastores.createImageMosaicStore(ws, covStore, zipPath);
+
+    console.info('... CoverageStore', covStore, 'created');
   }
 }
 
@@ -103,7 +133,8 @@ async function getUnpublishedRasters() {
   const pgrstUrl = postgRestUrl.endsWith('/') ? postgRestUrl : postgRestUrl + '/';
 
   try {
-    const url = pgrstUrl + rasterMetaTable;
+    let url = pgrstUrl + rasterMetaTable;
+    url += '?is_published=eq.0'; // filter for unpublished rasters
     verboseLogging('URL to load raster meta info:', url);
     // const auth = getPostgRestAuth();
 
@@ -118,16 +149,9 @@ async function getUnpublishedRasters() {
     if (response.status === 200) {
       const rasters = await response.json();
 
-      const rasterToPublish = [];
-      rasters.forEach(rasterMetaInf => {
-        if (rasterMetaInf.is_published === 0) {
-          rasterToPublish.push(rasterMetaInf);
-        }
-      });
+      console.info('Loaded', rasters.length, 'unpublished rasters from raster meta info DB');
 
-      console.info('Loaded all unpublished rasters from raster meta info DB');
-
-      return rasterToPublish;
+      return rasters;
     } else {
       console.error('Got non HTTP 200 response (HTTP status code', response.status, ') for loading raster meta info');
       return false;
@@ -151,11 +175,6 @@ async function addRasterToGeoServer(rasterMetaInf) {
   const covStore = rasterMetaInf.coverage_store || 'nrw_pm10_gm1h24h_mosaic';
   const imgMosaic = rasterMetaInf.image_mosaic || 'nrw_pm10_gm1h24h_mosaic';
   const rasterFile = rasterMetaInf.image_path;
-
-  // exit if coverage store does not exist
-  if (ignoreCovStores.includes(covStore)) {
-    return false;
-  }
 
   if (verbose) {
     const granulesBefore = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
@@ -237,6 +256,24 @@ async function asyncForEach(array, callback) {
   for (let index = 0; index < array.length; index++) {
     await callback(array[index], index, array);
   }
+}
+
+/**
+ * Executes a shell command and return it as a Promise.
+ * Kudos to https://ali-dev.medium.com/how-to-use-promise-with-exec-in-node-js-a39c4d7bbf77
+ *
+ * @param cmd {string}
+ * @return {Promise<string>}
+ */
+function execShellCommand(cmd) {
+  return new Promise((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.warn(error);
+      }
+      resolve(stdout? stdout : stderr);
+    });
+  });
 }
 
 /**
