@@ -3,7 +3,6 @@
  */
 package de.meggsimum.sauber.sdi;
 
-import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,8 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.imageio.ImageIO;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.postgresql.util.PGobject;
@@ -132,8 +130,8 @@ public class RasterDownloader implements nEventListener {
 		}
 	
 		// load database password from docker secret or use local dev file as backup
-		File secretFileDbPwCtn = new File("/run/secrets/sauber_user_password");
-		File secretFileDbPwLoc = new File(workingDir + "/../secrets/sauber_user_password.txt");
+		File secretFileDbPwCtn = new File("/run/secrets/app_password");
+		File secretFileDbPwLoc = new File(workingDir + "/../secrets/app_password.txt");
 		if (secretFileDbPwCtn.exists()) {
 			InputStream fis = new FileInputStream(secretFileDbPwCtn);
 			this.dbUserPw = IOUtils.toString(fis, "UTF-8");
@@ -256,7 +254,7 @@ public class RasterDownloader implements nEventListener {
 				RasterDownloader.evtData = new JSONObject(new String(evt.getEventData()));
 	
 				String category = evtData.getString("category");
-				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
+				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHH");
 	
 				JSONObject payload = evtData.getJSONObject("payload");
 				String request = payload.getString("url");			
@@ -366,7 +364,6 @@ public class RasterDownloader implements nEventListener {
 		if (status == 200) {
 
 			InputStream is = con.getInputStream();
-			BufferedImage buffImage = ImageIO.read(is);
 
 			// write to tmp. location
 			String contentType = con.getContentType();
@@ -378,14 +375,20 @@ public class RasterDownloader implements nEventListener {
 			String filePathStr = outDir + fileName +"."+ fileEnding;
 
 			File imgFile = new File(filePathStr);
-			imgFile.getParentFile().mkdirs();
-			imgFile.createNewFile();
 
-			ImageIO.write(buffImage, fileEnding, imgFile);
+			if (!imgFile.isFile()) {
+				imgFile.getParentFile().mkdirs();
+				imgFile.createNewFile();
+				FileUtils.copyInputStreamToFile(is, imgFile);	
+
+			} else {
+				System.out.println("Error: File "+ fileName +" already exists.");
+				System.exit(1);
+			}
 			
 			String absPath = imgFile.getAbsolutePath();
 			System.out.println("Raster saved at " + absPath);
-
+			
 			is.close();
 
 			try {

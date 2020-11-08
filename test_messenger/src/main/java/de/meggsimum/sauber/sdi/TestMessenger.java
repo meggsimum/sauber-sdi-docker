@@ -16,16 +16,8 @@
  */
 
 package de.meggsimum.sauber.sdi;
-
-import com.pcbsys.foundation.drivers.shm.MemoryMappedPipeWriter;
 import com.pcbsys.nirvana.client.*;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-
-import org.apache.commons.io.IOUtils;
+import java.text.SimpleDateFormat;
 import org.json.*;
 
 public class TestMessenger {
@@ -60,14 +52,21 @@ public class TestMessenger {
 					myChannel=mySession.findChannel(chattr);
 			    }
 				
-				// Create the JSONObject for the payload of the event with example data	    
+				SimpleDateFormat format = new SimpleDateFormat("HH");
+				
+				String readableTime = format.format((now+3600)*1000); 
+				// raster_downloader uses predictionStartTime as name
+				// get one hour ahead for correctly branded raster from server
 			    
+				// Create the JSONObject for the payload of the event with example data	    
+			    String rasterURL = "https://www.geomer.de/dltemp/raster_granules/"+readableTime+".tif";
+				
 			    JSONObject payload = new JSONObject("{\"unit\":\"microgm-3\","
-			    		+ "\"dataBbox\":\"SRID=4326;POLYGON((5.91045 50.30402,5.75907 52.49469,9.47180 52.53814,9.44972 50.34421, 5.91045 50.30402))\","
+			    		+ "\"dataBbox\":\"SRID=3035;POLYGON((4029801 3029448, 4033146 3273436, 4285160 3270009, 4281827 3025941, 4029801 3029448))\","
 			    		+ "\"interval\":3600,"
 			    		+ "\"region\":\"NRW\","
-			    		+ "\"type\":\"PM10_GM1H24H\","
-			    		+ "\"url\":\"https://www.geomer.de/dltemp/nrw_2020010114.tif\"}")
+			    		+ "\"type\":\"PM10_GM1H24H\"}")
+			    		.put("url", rasterURL)
 			    		.put("creationTime", now)
 			    		.put("predictionStartTime", then)
 			    		.put("predictionEndTime", later);	    
