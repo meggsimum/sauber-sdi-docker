@@ -200,7 +200,7 @@ BEGIN
     FROM tmp
     JOIN lut_stat ON tmp.station = lut_stat.station_code
     JOIN lut_comp on tmp.component = lut_comp.component_name
-    ON CONFLICT (date_time, fk_component, fk_station) 
+    ON CONFLICT (date_time, fk_component, fk_station, offset_hrs) 
     DO NOTHING;
    
    TRUNCATE TABLE station_data.input_lanuv;
@@ -512,7 +512,7 @@ BEGIN
     component_name,
     component_name_short,
     unit,
-    lubw_threshold
+    threshold
   )
   VALUES 
   (
@@ -552,7 +552,7 @@ BEGIN
   JOIN lut_stat ON tmp_json_vals.tmp_station = lut_stat.station_name
   JOIN lut_comp on tmp_json_vals.tmp_component = lut_comp.component_name
   WHERE tmp_json_vals.tmp_dt >= prediction_start_time
-  ON CONFLICT (val, date_time, fk_component, fk_station) DO NOTHING;
+  ON CONFLICT (val, date_time, fk_component, fk_station, offset_hrs) DO NOTHING;
 
   logentry_payload = '{"source":"hhi","data_timestamp":"'||message_timestamp||'", "n_vals":"'||counter||'"}';
   EXECUTE FORMAT ('SELECT station_data.createlogentry(%L)',logentry_payload);
@@ -1059,6 +1059,7 @@ ALTER TABLE ONLY station_data.lut_component ALTER COLUMN idpk_component SET DEFA
 
 ALTER TABLE ONLY station_data.lut_station ALTER COLUMN idpk_station SET DEFAULT nextval('station_data.lut_station_idpk_station_seq'::regclass);
 
+ALTER TABLE station_data.tab_prediction ADD CONSTRAINT tab_prediction_uq UNIQUE (offset_hrs, fk_component, fk_station, date_time, val);
 
 --
 -- Name: tab_measurement idpk_measurement; Type: DEFAULT; Schema: station_data; Owner: sauber_manager
