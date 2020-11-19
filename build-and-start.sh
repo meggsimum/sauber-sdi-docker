@@ -16,6 +16,10 @@ docker build --rm -f "raster_download/Dockerfile" -t sauberprojekt/raster_downlo
 
 docker build --rm -f "json_download/Dockerfile" -t sauberprojekt/json_download:$IMG_VERSION "json_download"
 
+docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$IMG_VERSION "lubw_download"
+
+docker build --rm -f "lanuv_download/Dockerfile" -t sauberprojekt/lanuv_download:$IMG_VERSION "lanuv_download"
+
 docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$IMG_VERSION "test_messenger"
 
 docker build --rm -f "postgrest/Dockerfile" -t sauberprojekt/postgrest:$IMG_VERSION "postgrest"

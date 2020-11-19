@@ -1,1 +1,1 @@
-30 * * * * bash /scripts/dl_lanuv.sh 2>&1
+30 * * * * bash /scripts/dl_lanuv.sh

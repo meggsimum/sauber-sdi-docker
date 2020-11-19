@@ -25,7 +25,7 @@ file_env() {
 
 #Read docker secrets. 
 secrets=(
-    SAUBER_MANAGER_PASSWORD
+	APP_PASSWORD
     LUBW_USER
     LUBW_PASSWORD
     LUBW_SERVER

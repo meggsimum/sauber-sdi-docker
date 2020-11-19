@@ -7,7 +7,7 @@ PARSED_OUTDIR=/data/xml_data
 PARSED_OUTFILE=lubw_$(TZ=Europe/Berlin date +%Y%m%d%H%M).xml
 
 # Download xml file from server. Exit if curl throws failure (http response!=2xx) 
-if curl --fail -u $LUBW_USER:$LUBW_PASSWORD $LUBW_SERVER -o $OUTDIR/$OUTFILE; 
+if curl --fail -u $LUBW_USER:$LUBW_PASSWORD ftp://$LUBW_SERVER -o $OUTDIR/$OUTFILE; 
 then
     echo "Datei $PARSED_OUTFILE heruntergeladen."
 else

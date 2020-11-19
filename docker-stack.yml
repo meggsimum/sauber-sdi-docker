@@ -6,10 +6,11 @@ networks:
 
 volumes:
     db_data:
-    lubw_data:
     geoserver_data:
     raster_data:
     json_data:
+    lanuv_data:
+    lubw_data:
     um_data:
     um_logs:
     um_licence:
@@ -37,6 +38,9 @@ secrets:
     geoserver_password:
         file: ./secrets/geoserver_password.txt
         name: geoserver_password_v1
+    app_password:
+        file: ./secrets/app_password.txt
+        name: app_password_v1
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
         name: sauber_user_password_v1
@@ -60,7 +64,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20201002_1"
+        image: "sauberprojekt/postgis_alpine:20201007_1"
         networks:
             - sauber-network
         volumes:
@@ -222,7 +226,45 @@ services:
         depends_on:
             - um_server
         volumes:
-            - json_data:/json_data/:Z
+            - json_data:/json_data/
+        tty:
+            true
+
+    lanuv_downloader:
+        image: "sauberprojekt/lanuv_download:20201007_1"
+        networks:
+            - sauber-network
+        secrets:
+            - app_password
+        environment:
+            - APP_PASSWORD_FILE=/run/secrets/app_password
+        # deploy:
+        depends_on:
+            - um_server
+        volumes:
+            - lanuv_data:/lanuv_data
+        tty:
+            true
+
+    lubw_downloader:
+        image: "sauberprojekt/lubw_download:20201007_1"
+        networks:
+            - sauber-network
+        secrets:
+            - app_password
+            - lubw_user
+            - lubw_password
+            - lubw_server
+        environment:
+            - APP_PASSWORD_FILE=/run/secrets/app_password
+            - LUBW_PASSWORD_FILE=/run/secrets/lubw_password
+            - LUBW_USER_FILE=/run/secrets/lubw_user
+            - LUBW_SERVER_FILE=/run/secrets/lubw_server
+            # deploy:
+        depends_on:
+            - um_server
+        volumes:
+            - lubw_data:/data/xml_data
         tty:
             true
 
