@@ -2,7 +2,7 @@
 # Seach for 'STEP' comments for key steps  
 
 # STEP 1: Add any new DBs to list that pgREST should access
-INIT_DBS="here lubw_messstellen sauber_data"
+INIT_DBS="here sauber_data"
 
 # Read secrets
 file_env() {
@@ -46,37 +46,6 @@ for e in "${envs[@]}"; do
 		exit 1
 	fi
 done
-
-
-# STEP 3: Setup pgREST roles. 
-# For easier reading, pgrest roles could be added via DROP, CREATE 
-psql -U postgres -q<<- 'EOSQL'
-    DO
-    $do$
-    BEGIN
-    IF NOT EXISTS (
-        SELECT                       
-        FROM   pg_catalog.pg_roles
-        WHERE  rolname = 'anon') THEN
-        CREATE role anon nologin;
-    END IF;
-    END
-    $do$;
-
-    DO
-    $do$
-    BEGIN
-    IF NOT EXISTS (
-        SELECT                       
-        FROM   pg_catalog.pg_roles
-        WHERE  rolname = 'authenticator') THEN
-        CREATE role authenticator login noinherit;
-        GRANT anon TO authenticator;
-        ALTER user authenticator password 'pgrstpw';
-    END IF;
-    END
-    $do$;
-EOSQL
 
 
 # STEP 4: Grant pgREST roles basic priviliges.
@@ -212,38 +181,68 @@ done
 
 # STEP 7: Grant pgREST roles access to actual DB data. 
 
-psql -d lubw_messstellen -q <<-'EOSQL' 
-    GRANT USAGE ON SCHEMA daten TO anon; 
-    GRANT SELECT ON daten.fcp_messstellen, daten.lut_datentyp, daten.lut_komponente, daten.tab_werte to anon;
-EOSQL
-
 psql -d here -q <<-'EOSQL' 
     GRANT USAGE ON SCHEMA here_traffic TO anon; 
     GRANT SELECT ON ALL TABLES IN SCHEMA here_traffic TO anon;
 EOSQL
 
 psql -d sauber_data -q <<-'EOSQL'
-    GRANT USAGE ON SCHEMA image_mosaics TO anon;
-    GRANT SELECT ON image_mosaics.raster_metadata TO anon;
-    GRANT UPDATE ON TABLE image_mosaics.raster_metadata TO anon;
-    GRANT ALL ON TABLE image_mosaics.raster_metadata TO sauber_manager;
-    GRANT INSERT, UPDATE (is_published) ON image_mosaics.raster_metadata TO anon;
-    GRANT USAGE ON SCHEMA station_data TO anon;
-    GRANT SELECT ON station_data.lut_region TO anon;
-    GRANT SELECT ON station_data.lut_component TO anon;
-    GRANT SELECT ON station_data.lut_station TO anon;
-    GRANT SELECT ON station_data.tab_measurement TO anon;
-    GRANT SELECT ON station_data.tab_prediction TO anon;
-    GRANT SELECT ON station_data.logtable TO anon;
+    GRANT USAGE ON SCHEMA image_mosaics TO app;
+    GRANT USAGE ON SCHEMA station_data TO app;
+    GRANT ALL ON FUNCTION station_data.createlogentry(pload jsonb) TO app;
+    GRANT ALL ON FUNCTION station_data.lanuv_parse(input_ts text) TO app;
+    GRANT ALL ON FUNCTION station_data.lubw_parse() TO app;
+    GRANT ALL ON FUNCTION station_data.prediction_parse() TO app;
+    GRANT ALL ON SEQUENCE station_data.logtable_idpk_log_seq TO app;
+    GRANT ALL ON SEQUENCE station_data.lut_component_idpk_component_seq TO app;
+    GRANT ALL ON SEQUENCE station_data.lut_station_idpk_station_seq TO app;
+    GRANT ALL ON SEQUENCE station_data.prediction_input_idpk_json_seq TO app;
+    GRANT ALL ON SEQUENCE station_data.tab_measurement_idpk_prediction_seq TO app;
+    GRANT ALL ON SEQUENCE station_data.tab_prediction_idpk_value_seq TO app;
+    GRANT ALL ON TABLE station_data.input_lanuv TO app;
+    GRANT ALL ON TABLE station_data.input_lubw TO app;
+    GRANT ALL ON TABLE station_data.input_prediction TO app;
+    GRANT CREATE ON DATABASE sauber_data TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE image_mosaics.raster_metadata TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE station_data.logtable TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE station_data.lut_component TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE station_data.lut_station TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE station_data.tab_measurement TO app;
+    GRANT SELECT,INSERT,UPDATE ON TABLE station_data.tab_prediction TO app;
+    GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO app;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.tab_prediction_idpk_value_seq TO sauber_user;
+    GRANT SELECT ON TABLE image_mosaics.raster_metadata TO sauber_user;
+    GRANT SELECT ON TABLE station_data.fv_wfs TO sauber_user;
+    GRANT SELECT ON TABLE station_data.logtable TO sauber_user;
+    GRANT SELECT ON TABLE station_data.lut_component TO sauber_user;
+    GRANT SELECT ON TABLE station_data.lut_station TO sauber_user;
+    GRANT SELECT ON TABLE station_data.tab_measurement TO sauber_user;
+    GRANT SELECT ON TABLE station_data.tab_prediction TO sauber_user;
+    GRANT SELECT,INSERT,UPDATE ON TABLE image_mosaics.raster_metadata TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.logtable_idpk_log_seq TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.lut_component_idpk_component_seq TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.lut_station_idpk_station_seq TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.prediction_input_idpk_json_seq TO sauber_user;
+    GRANT SELECT,USAGE ON SEQUENCE station_data.tab_measurement_idpk_prediction_seq TO sauber_user;
+    GRANT USAGE ON SCHEMA image_mosaics TO sauber_user;
     GRANT USAGE ON SCHEMA station_data TO sauber_user;
-    GRANT SELECT ON station_data.raw_input TO sauber_user;
-    GRANT SELECT ON station_data.lut_region TO sauber_user;
-    GRANT SELECT ON station_data.lut_component TO sauber_user;
-    GRANT SELECT ON station_data.lut_station TO sauber_user;
-    GRANT SELECT ON station_data.tab_measurement TO sauber_user;
-    GRANT SELECT ON station_data.tab_prediction TO sauber_user;
-    GRANT SELECT ON station_data.logtable TO sauber_user;
-    GRANT SELECT ON station_data.raw_input TO sauber_user;
+    GRANT USAGE ON SCHEMA station_data TO anon;
+    GRANT USAGE ON SCHEMA basic_auth TO anon;
+    GRANT SELECT ON TABLE basic_auth.users TO anon;
+    GRANT USAGE ON SCHEMA daten TO anon;
+    GRANT USAGE ON SCHEMA image_mosaics TO anon;
+    GRANT SELECT,INSERT,UPDATE(is_published) ON TABLE image_mosaics.raster_metadata TO anon;
+    GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO anon;
+    GRANT SELECT ON TABLE pg_catalog.pg_authid TO anon;
+    GRANT SELECT ON TABLE station_data.logtable TO anon;
+    GRANT SELECT ON TABLE station_data.lut_component TO anon;
+    GRANT SELECT ON TABLE station_data.lut_region TO anon;
+    GRANT SELECT ON TABLE station_data.lut_station TO anon;
+    GRANT SELECT ON TABLE station_data.tab_measurement TO anon;
+    GRANT SELECT ON TABLE station_data.tab_prediction TO anon;
+    GRANT anon TO authenticator GRANTED BY postgres;
+    GRANT ALL ON FUNCTION public.login(email text, pass text) TO anon;
 EOSQL
 
 #echo 'PGRST PASSWORD: ' $PGRST_PASSWORD

@@ -64,7 +64,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:20201007_1"
+        image: "sauberprojekt/postgis_alpine:${TAG:-master}"
         networks:
             - sauber-network
         volumes:
@@ -74,12 +74,14 @@ services:
             - postgrest_password
             - sauber_manager_password
             - sauber_user_password
+            - app_password
             - postgres_init_password
         environment:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
             - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - APP_PASSWORD_FILE=/run/secrets/app_password
             - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_init_password
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -94,7 +96,7 @@ services:
             - "5440:5432"
 
     geoserver:
-        image: "meggsimum/geoserver"
+        image: "meggsimum/geoserver:2.17.3"
         networks:
             - sauber-network
         secrets:
@@ -108,7 +110,6 @@ services:
             - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
             - ./geoserver_mnt/raster_data:/opt/raster_data:Z
            # - ./geoserver_mnt/additional_libs:/opt/additional_libs/:Z
-           # - raster_data/:/opt/raster_data:Z
         deploy:
             replicas: 1
             restart_policy:
@@ -119,7 +120,7 @@ services:
             - "8080:8080"
 
     postgrest_raster_publisher:
-        image: "sauberprojekt/postgrest:20200701_1"
+        image: "sauberprojekt/postgrest:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
@@ -164,7 +165,7 @@ services:
             - "9876:9000"
 
     test_messenger:
-        image: "sauberprojekt/test_messenger:20200722_1"
+        image: "sauberprojekt/test_messenger:${TAG:-master}"
         networks:
             - sauber-network
 #       secrets:
@@ -178,19 +179,19 @@ services:
             true
 
     raster_downloader:
-        image: "sauberprojekt/raster_download:20201001_1"
+        image: "sauberprojekt/raster_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
-            - sauber_user_password
+            - app_password
             - hhi_rest_user
             - hhi_rest_pw
             - hhi_ip_address
         environment:
-            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - APP_PASSWORD_FILE=/run/secrets/app_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
-            - DB_USER=sauber_user
+            - DB_USER=app
             - UM_CHANNEL=raster_data
             - UM_SERVER=um_server:9000
         # deploy:
@@ -199,25 +200,25 @@ services:
         depends_on:
             - um_server
         volumes:
-            - raster_data:/raster_data/:Z
+            - ./geoserver_mnt/raster_data:/opt/raster_data:Z
         tty:
-            true 
+            true
 
     json_downloader:
-        image: "sauberprojekt/json_download:20201001_1"
+        image: "sauberprojekt/json_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
-            - sauber_user_password
+            - app_password
             - hhi_rest_user
             - hhi_rest_pw
             - hhi_ip_address
         environment:
-            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - SAUBER_APP_PASSWORD_FILE=/run/secrets/app_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_ip_address
-            - DB_USER=sauber_user
+            - DB_USER=app
             - UM_CHANNEL=station_data
             - UM_SERVER=um_server:9000
         # deploy:
@@ -269,7 +270,7 @@ services:
             true
 
     geoserver_raster_publisher:
-      image: "sauberprojekt/geoserver_raster_publisher:20200701_1"
+      image: "sauberprojekt/geoserver_raster_publisher:${TAG:-master}"
       networks:
           - sauber-network
       secrets:
@@ -277,7 +278,6 @@ services:
           - geoserver_user
           - geoserver_password
       environment:
-          - GSPUB_PG_REST_URL=/run/secrets/postgrest_password
           - GSPUB_PG_REST_USER=anon
           - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
       deploy:
@@ -288,14 +288,14 @@ services:
           - geoserver
 
     um-ol-demo:
-        image: sauberprojekt/um_ol_demo:20200701_1
+        image: sauberprojekt/um_ol_demo:${TAG:-master}
         networks:
             - sauber-network
         ports:
             - "9999:80"
 
     um-js-demo:
-        image: sauberprojekt/um_js_demo:20200701_1
+        image: sauberprojekt/um_js_demo:${TAG:-master}
         networks:
             - sauber-network
         ports:

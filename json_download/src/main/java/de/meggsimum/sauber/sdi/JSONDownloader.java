@@ -97,10 +97,10 @@ public class JSONDownloader implements nEventListener {
 		String workingDir = System.getProperty("user.dir");
 		
 		// load HHI REST user from docker secret or use local dev file as backup
-		File secretFileUsrCtn = new File("/run/secrets/hhi_rest_user");
+		File secretFileHhiRestUsrCtn  = new File("/run/secrets/hhi_rest_user");
 		File secretFileUsrLoc = new File(workingDir + "/../secrets/hhi_rest_user.txt");
-		if (secretFileUsrCtn.exists()) {
-			InputStream fis = new FileInputStream(secretFileUsrCtn);
+		if (secretFileHhiRestUsrCtn .exists()) {
+			InputStream fis = new FileInputStream(secretFileHhiRestUsrCtn );
 			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
 		} else if (secretFileUsrLoc.exists()) {
 			System.out.println("Using local backup secret at " + secretFileUsrLoc.getAbsolutePath());
@@ -125,8 +125,8 @@ public class JSONDownloader implements nEventListener {
 		}
 	
 		// load database password from docker secret or use local dev file as backup
-		File secretFileDbPwCtn = new File("/run/secrets/sauber_user_password");
-		File secretFileDbPwLoc = new File(workingDir + "/../secrets/sauber_user_password.txt");
+		File secretFileDbPwCtn = new File("/run/secrets/app_password");
+		File secretFileDbPwLoc = new File(workingDir + "/../secrets/app_password.txt");
 		if (secretFileDbPwCtn.exists()) {
 			InputStream fis = new FileInputStream(secretFileDbPwCtn);
 			this.dbUserPw = IOUtils.toString(fis, "UTF-8");
@@ -315,7 +315,7 @@ public class JSONDownloader implements nEventListener {
 
 	private void downloadJSON(URL requestUrl, String region, String type, Long timeStamp) throws IOException, SQLException {
 				
-		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddhh");
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHH");
 		String readableTime = format.format(timeStamp*1000);
 	
 		Path jsonDir = Paths.get("/station_data");
@@ -359,7 +359,7 @@ public class JSONDownloader implements nEventListener {
 		
 		//setup db connection
 		String url = "jdbc:postgresql://db:5432/sauber_data";
-		//String url = "jdbc:postgresql://localhost:5430/sauber_data"; //Debug JK
+	
 		Properties props = new Properties();
 		props.setProperty("user",dbUser);
 		props.setProperty("password",dbUserPw);
@@ -367,7 +367,7 @@ public class JSONDownloader implements nEventListener {
 		Connection conn = DriverManager.getConnection(url, props);
 		conn.setAutoCommit(false);
 		
-		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO station_data.raw_input (json_payload,json_message) VALUES(?,?)");
+		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO station_data.input_prediction (json_payload,json_message) VALUES(?,?)");
 
 		//read payload from stored json file 
 		//add as pgobject for statement
@@ -394,7 +394,7 @@ public class JSONDownloader implements nEventListener {
 			conn.commit();
 			inputStmt.close();
 			Statement parseStmt = conn.createStatement();
-			String selectQuery = "SELECT station_data.parse_json()";
+			String selectQuery = "SELECT station_data.prediction_parse()";
 			
 			ResultSet rSet = parseStmt.executeQuery(selectQuery);
 			

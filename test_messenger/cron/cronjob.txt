@@ -1,3 +1,3 @@
-0 8 * * * /opt/run.sh
+30 * * * * /opt/run.sh
 
 
