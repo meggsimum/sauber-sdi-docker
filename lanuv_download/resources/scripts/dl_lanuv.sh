@@ -1,5 +1,48 @@
 #!/bin/bash
 
+set -e 
+
+file_env() {
+	local var="$1"
+	local fileVar="${var}_FILE"
+	local def="${2:-}"
+	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
+		echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
+		exit 1
+	fi
+	local val="$def"
+	if [ "${!var:-}" ]; then
+		val="${!var}"
+	elif [ "${!fileVar:-}" ]; then
+		val="$(< "${!fileVar}")"
+	fi
+	#echo "$var,$val"
+	export "$var"="$val"
+	unset "$fileVar" 
+}
+
+
+#Read docker secrets. 
+secrets=(
+    APP_PASSWORD
+)
+
+for e in "${secrets[@]}"; do
+		file_env "$e"
+done
+
+#Ensure mandatory environment vars are set  
+envs=(
+    APP_PASSWORD
+)
+
+for e in "${envs[@]}"; do
+	if [ -z ${!e:-} ]; then
+		echo "error: $e is not set"
+		exit 1
+	fi
+done
+
 OUTDIR=/lanuv_data
 OUTFILE=lanuv_$(TZ=Europe/Berlin date +%Y%m%d%H%M).csv
 
@@ -19,6 +62,9 @@ echo $DATA_TS
 
 #Delete first 2 lines, replace characters
 sed -i -e "1d;2d;" -e "s/\*/-/g" -e "s/<//g" $OUTDIR/$OUTFILE
+wait
 
 # host db
-PGPASSWORD=$APP_PASSWORD psql -h db -U app -d sauber_data -c "\copy station_data.input_lanuv FROM $OUTDIR/$OUTFILE CSV DELIMITER ';' NULL '-' ENCODING 'latin-1'; SELECT station_data.lanuv_parse($DATA_TS::TEXT);"
+PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -U app -d sauber_data -c "\copy station_data.input_lanuv FROM $OUTDIR/$OUTFILE CSV DELIMITER ';' NULL '-' ENCODING 'latin-1'; SELECT station_data.lanuv_parse($DATA_TS::TEXT);"
+
+exit

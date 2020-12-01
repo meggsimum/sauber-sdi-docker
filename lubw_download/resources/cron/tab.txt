@@ -1,1 +1,2 @@
-30 * * * * bash /scripts/dl_sauber_ftp.sh 2>&1
+SHELL=/bin/bash
+30 * * * * /usr/bin/flock -n /tmp/lockfile /scripts/dl_lubw.sh

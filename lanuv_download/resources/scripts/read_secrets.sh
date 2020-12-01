@@ -3,7 +3,6 @@
 set -e 
 
 # Load envs
-
 file_env() {
 	local var="$1"
 	local fileVar="${var}_FILE"
@@ -16,19 +15,33 @@ file_env() {
 	if [ "${!var:-}" ]; then
 		val="${!var}"
 	elif [ "${!fileVar:-}" ]; then
-		val="$(< "${!fileVar}")":
+		val="$(< "${!fileVar}")"
 	fi
-#	echo "$var,$val"
+	#echo "$var,$val"
 	export "$var"="$val"
 	unset "$fileVar" 
 }
 
+
+#Read docker secrets. 
 secrets=(
-APP_PASSWORD
+    APP_PASSWORD
 )
 
-for e in "${secrets}"; do
+for e in "${secrets[@]}"; do
 		file_env "$e"
+done
+
+#Ensure mandatory environment vars are set  
+envs=(
+    APP_PASSWORD
+)
+
+for e in "${envs[@]}"; do
+	if [ -z ${!e:-} ]; then
+		echo "error: $e is not set"
+		exit 1
+	fi
 done
 
 crond -f

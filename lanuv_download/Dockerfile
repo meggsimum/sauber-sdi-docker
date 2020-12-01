@@ -12,11 +12,11 @@ RUN apk update && \
 # set time zone 
 COPY resources/ . 
 RUN mkdir lanuv_data
-RUN chmod 775 lanuv_data scripts 
+RUN chmod -R 775 /lanuv_data /scripts 
 
 # add to crontab
 RUN crontab /cron/tab.txt
 
 # order of execution: 
 # read_secrets > cron > download script
-ENTRYPOINT ["scripts/read_secrets.sh"]
+CMD ["crond", "-f", "-d", "8"]
