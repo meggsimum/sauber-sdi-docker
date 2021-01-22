@@ -8,7 +8,6 @@ import fetch from 'node-fetch';
 import pg from 'pg';
 import GeoServerRestClient from 'geoserver-node-client';
 import {framedBigLogging, framedMediumLogging} from './js-utils/logging.js';
-
 import config from './config/config.js';
 
 const verbose = process.env.STCR_VERBOSE || false;
@@ -96,8 +95,10 @@ async function createStationLayers() {
 }
 
 /**
+ * Creates a DB view for the combination of a station and a measured pollutant.
  *
- * @param {*} stationJson
+ * @param {String} stationCode The station code, e.g. RODE
+ * @param {String} pollutant The pollutant, e.g. NO2_AM1H
  */
 async function createDbView(stationCode, pollutant) {
   console.info(`Creating DB view for ${stationCode} ${pollutant}`);
@@ -132,8 +133,10 @@ async function createDbView(stationCode, pollutant) {
 }
 
 /**
+ * Creates a GeoServer layer based on the given DB view.
  *
- * @param {*} dbViewName
+ * @param {String} dbViewName The DB view name as base for the GeoServer layer
+ * @param {String} stationCode The station code, e.g. RODE
  */
 async function createGeoServerLayer(dbViewName, stationCode) {
   console.info(`Creating GeoServer layer for ${stationCode} ${dbViewName}`);
@@ -171,6 +174,10 @@ async function createGeoServerLayer(dbViewName, stationCode) {
 // start main process
 createStationLayers();
 
+// -------------------------------------------
+// HELPERS
+// -------------------------------------------
+
 /**
  * Helper to perform asynchronous forEach.
  * Found at https://codeburst.io/javascript-async-await-with-foreach-b6ba62bbf404
@@ -185,8 +192,7 @@ async function asyncForEach(array, callback) {
 }
 
 /**
- *
- * @param {*} msg
+ * Logs in case verbose=true.
  */
 function verboseLogging() {
   if (verbose) {
@@ -195,6 +201,7 @@ function verboseLogging() {
 }
 
 /**
+ * Exits the script and logs the given message.
  *
  * @param {String} msg
  */
