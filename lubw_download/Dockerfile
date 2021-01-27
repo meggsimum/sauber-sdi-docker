@@ -20,6 +20,4 @@ RUN ln -snf /usr/share/zoneinfo/Europe/Berlin /etc/localtime && echo Europe/Berl
 # add to crontab
 RUN crontab /cron/tab.txt
 
-# order of execution: 
-# read_secrets > cron > download script
 CMD ["crond", "-f", "-d", "8"]

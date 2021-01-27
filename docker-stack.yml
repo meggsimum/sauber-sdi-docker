@@ -227,12 +227,12 @@ services:
         depends_on:
             - um_server
         volumes:
-            - json_data:/json_data/
+            - json_data:/json_data/:Z
         tty:
             true
 
     lanuv_downloader:
-        image: "sauberprojekt/lanuv_download:20201007_1"
+        image: "sauberprojekt/lanuv_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:
@@ -248,7 +248,7 @@ services:
             true
 
     lubw_downloader:
-        image: "sauberprojekt/lubw_download:20201007_1"
+        image: "sauberprojekt/lubw_download:${TAG:-master}"
         networks:
             - sauber-network
         secrets:

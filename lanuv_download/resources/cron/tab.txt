@@ -1,1 +1,1 @@
-30 * * * * bash /scripts/dl_lanuv.sh
+30 * * * * /usr/bin/flock -n /tmp/lockfile /scripts/dl_lanuv.sh
