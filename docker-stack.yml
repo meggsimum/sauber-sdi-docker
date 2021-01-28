@@ -301,18 +301,28 @@ services:
         ports:
             - "9998:80"
 
+    wms-time-viewer:
+        image: sauberprojekt/wms-time-viewer:${TAG:-master}
+        networks:
+            - sauber-network
+        ports:
+            - "9997:80"
+
     proxy-webserver:
         image: nginx:stable
         ports:
             - "80:80"
+            - "443:443"
         volumes:
             - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - /etc/letsencrypt:/etc/ssl/certs:ro
         networks:
             - sauber-network
         depends_on:
             - geoserver
             - um_server
             - um-js-demo
+            - wms-time-viewer
 
     um-publisher:
         image: um_publisher:latest
