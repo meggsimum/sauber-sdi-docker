@@ -1,0 +1,38 @@
+{
+  "name": "station_layer_creator",
+  "version": "0.0.1",
+  "description": "Script to create GeoServer layers for stations and their pollutants",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint index.js",
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meggsimum/sauber-sdi-docker.git"
+  },
+  "keywords": [
+    "SAUBER",
+    "station",
+    "layer",
+    "pollutant",
+    "creation"
+  ],
+  "author": "C. Mayer (meggsimum)",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/meggsimum/sauber-sdi-docker/issues"
+  },
+  "homepage": "https://github.com/meggsimum/sauber-sdi-docker#readme",
+  "dependencies": {
+    "geoserver-node-client": "https://github.com/chrismayer/geoserver-node-client.git#master",
+    "node-fetch": "^2.6.0",
+    "pg": "^8.5.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.1.0",
+    "eslint-config-standard": "^14.1.1"
+  }
+}
