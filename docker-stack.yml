@@ -248,6 +248,23 @@ services:
           - postgrest_raster_publisher
           - geoserver
 
+    station_layer_creator:
+      image: "sauberprojekt/station_layer_creator:${TAG:-master}"
+      networks:
+          - sauber-network
+      secrets:
+          - sauber_manager_password
+          - geoserver_user
+          - geoserver_password
+      #environment:
+      #    - STCR_STATIONS_TYPENAME=station_data:fv_stations
+      deploy:
+          restart_policy:
+            condition: on-failure
+      depends_on:
+          - db
+          - geoserver
+
     um-ol-demo:
         image: sauberprojekt/um_ol_demo:${TAG:-master}
         networks:
