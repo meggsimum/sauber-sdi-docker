@@ -2,6 +2,11 @@
 
 PUSH_TO_HUB=0
 
+if [ $1 = "PUSH_TO_HUB" ]
+then
+  PUSH_TO_HUB=1
+fi
+
 # assemble date and a salt as image version
 DATE=`date +"%Y%m%d"`
 SALT="1"
