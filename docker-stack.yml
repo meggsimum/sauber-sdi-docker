@@ -102,7 +102,7 @@ services:
             - geoserver_user
             - geoserver_password
         environment:
-            - USE_CORS=1
+            - USE_CORS=0
             - USE_VECTOR_TILES=1
             - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
         volumes:
