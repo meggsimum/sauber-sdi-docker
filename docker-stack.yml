@@ -18,10 +18,10 @@ volumes:
 secrets:
     postgrest_password:
         file: ./secrets/pgrst_password.txt
-        name: pgrest_password_v2
+        name: pgrest_password_v3
     postgrest_jwt_secret:
         file: ./secrets/pgrst_jwt_secret.txt
-        name: pgrest_sauber_v2
+        name: pgrest_sauber_v3
     lubw_user:
         file: ./secrets/lubw_user.txt
         name: lubw_user_v1
@@ -36,19 +36,19 @@ secrets:
         name: geoserver_user_v1
     geoserver_password:
         file: ./secrets/geoserver_password.txt
-        name: geoserver_password_v1
+        name: geoserver_password_v2
     app_password:
         file: ./secrets/app_password.txt
-        name: app_password_v1
+        name: app_password_v3
     sauber_user_password:
         file: ./secrets/sauber_user_password.txt
-        name: sauber_user_password_v1
+        name: sauber_user_password_v2
     sauber_manager_password:
         file: ./secrets/sauber_manager_password.txt
-        name: sauber_manager_password_v1
+        name: sauber_manager_password_v2
     postgres_init_password:
         file: ./secrets/postgres_init_password.txt
-        name: postgres_init_password_v1
+        name: postgres_init_password_v2
     hhi_rest_user:
         file: ./secrets/hhi_rest_user.txt
         name: hhi_rest_user_v1
