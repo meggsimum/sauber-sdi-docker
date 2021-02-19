@@ -151,6 +151,7 @@ services:
         secrets:
             - postgrest_jwt_secret
             - postgrest_password
+            - sauber_manager_password
         environment:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_USER=authenticator
