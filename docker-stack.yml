@@ -105,6 +105,7 @@ services:
             - USE_CORS=0
             - USE_VECTOR_TILES=1
             - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
+            - GEOSERVER_CSRF_WHITELIST=sauber-sdi.meggsimum.de
         volumes:
             - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
             - ./geoserver_mnt/raster_data:/opt/raster_data:Z
