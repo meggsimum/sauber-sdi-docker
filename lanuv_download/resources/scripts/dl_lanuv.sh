@@ -55,16 +55,14 @@ else
         exit 1
 fi
 
-#Get timestamp of file
+#Get timestamp of the file, assign to variable
 DATA_TS=\'$(head -1 $OUTDIR/$OUTFILE | awk -F "[;]" '{print $(NF-1)"."$NF}' | awk -F "[.]" '{print $3"-"$2"-"$1,$4""}')\'
 
-echo $DATA_TS
-
-#Delete first 2 lines, replace characters
+#Delete first 2 lines to meet postgres req for csv, replace invalid characters
 sed -i -e "1d;2d;" -e "s/\*/-/g" -e "s/<//g" $OUTDIR/$OUTFILE
-wait
+sleep 1
 
-# host db
+#Upload data to postgres
 PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -U app -d sauber_data -c "\copy station_data.input_lanuv FROM $OUTDIR/$OUTFILE CSV DELIMITER ';' NULL '-' ENCODING 'latin-1'; SELECT station_data.lanuv_parse($DATA_TS::TEXT);"
 
 exit

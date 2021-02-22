@@ -69,7 +69,7 @@ fi
 
 # XML is not well formed for direct insert to PG. Need to replace newline with empty string.
 tr '\n' ' ' < $OUTDIR/$OUTFILE > $PARSED_OUTDIR/$PARSED_OUTFILE
-wait
+sleep 1
 
 PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "\copy station_data.input_lubw FROM $PARSED_OUTDIR/$PARSED_OUTFILE encoding 'LATIN1'; SELECT station_data.lubw_parse();"
 

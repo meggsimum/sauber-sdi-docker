@@ -1,1 +1,3 @@
-30 * * * * /usr/bin/flock -n /tmp/lockfile /scripts/dl_lubw.sh
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+30 * * * * /bin/bash /scripts/dl_lubw.sh
