@@ -2,6 +2,11 @@
 
 PUSH_TO_HUB=0
 
+if [ $1 = "PUSH_TO_HUB" ]
+then
+  PUSH_TO_HUB=1
+fi
+
 # assemble date and a salt as image version
 DATE=`date +"%Y%m%d"`
 SALT="1"
@@ -37,6 +42,9 @@ docker tag sauberprojekt/postgrest:$MASTER_TAG sauberprojekt/postgrest:$DATE_TAG
 docker build --rm -f "geoserver_publisher/Dockerfile" -t sauberprojekt/geoserver_raster_publisher:$MASTER_TAG "geoserver_publisher"
 docker tag sauberprojekt/geoserver_raster_publisher:$MASTER_TAG sauberprojekt/geoserver_raster_publisher:$DATE_TAG
 
+docker build --rm -f "station_layer_creator/Dockerfile" -t sauberprojekt/station_layer_creator:$MASTER_TAG "station_layer_creator"
+docker tag sauberprojekt/station_layer_creator:$MASTER_TAG sauberprojekt/station_layer_creator:$DATE_TAG
+
 docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauberprojekt/um_ol_demo:$MASTER_TAG "um_ol_demo"
 docker tag sauberprojekt/um_ol_demo:$MASTER_TAG sauberprojekt/um_ol_demo:$DATE_TAG
 
@@ -64,6 +72,9 @@ then
 
   docker push sauberprojekt/geoserver_raster_publisher:$MASTER_TAG
   docker push sauberprojekt/geoserver_raster_publisher:$DATE_TAG
+
+  docker push sauberprojekt/station_layer_creator:$MASTER_TAG
+  docker push sauberprojekt/station_layer_creator:$DATE_TAG
 
   docker push sauberprojekt/um_ol_demo:$MASTER_TAG
   docker push sauberprojekt/um_ol_demo:$DATE_TAG

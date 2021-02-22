@@ -1,2 +1,2 @@
-geoserver_mnt/
-secrets/
+/secrets/*
+!README.txt
