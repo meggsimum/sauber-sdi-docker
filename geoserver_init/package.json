@@ -1,0 +1,27 @@
+{
+  "name": "sauber-geoserver-init",
+  "version": "0.0.1",
+  "description": "Script to initialize the SAUBER GeoServer.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Init",
+    "Initialize",
+    "GeoServer",
+    "SAUBER"
+  ],
+  "author": "C. Mayer (meggsimum)",
+  "license": "MIT",
+  "dependencies": {
+    "geoserver-node-client": "https://github.com/chrismayer/geoserver-node-client.git#master",
+    "node-fetch": "^2.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.1.0",
+    "eslint-config-standard": "^14.1.1"
+  }
+}
