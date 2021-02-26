@@ -1,5 +1,11 @@
-# geoserver_publisher
+# geoserver_init
 
-http://159.69.72.183:8080/geoserver/rest/workspaces/imagemosaic_test/coveragestores/nrw_no2/coverages/nrw_no2_mosaic/index/granules.json
+`geoserver_init` service in order to initialize the SAUBER GeoServer:
 
-http://159.69.72.183:3001/tab_log
+  - Adapting the login credentials
+  - Creating the workspaces
+  - Creating the PostGIS DataStore connect
+  - Creating the stations layer
+
+The service is executed directly after the `geoserver` service is fully
+available (ensured by a `wait.for.sh` script).
