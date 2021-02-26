@@ -53,6 +53,9 @@ then
   docker build --rm -f "um-js-demo-client/Dockerfile" -t sauberprojekt/um_js_demo:$MASTER_TAG "um-js-demo-client"
   docker tag sauberprojekt/um_js_demo:$MASTER_TAG sauberprojekt/um_js_demo:$DATE_TAG
 
+  docker build --rm -f "geoserver_init/Dockerfile" -t sauberprojekt/geoserver_init:$MASTER_TAG "geoserver_init"
+  docker tag sauberprojekt/geoserver_init:$MASTER_TAG sauberprojekt/geoserver_init:$DATE_TAG
+
   echo "... DONE Building Docker Images"
 
 fi
