@@ -15,15 +15,23 @@ const dockerSecret = {};
  * @param {String} secretName
  */
 dockerSecret.read = function read(secretName) {
+
   try {
+
     return fs.readFileSync(`/run/secrets/${secretName}`, 'utf8');
+
   } catch(err) {
     if (err.code !== 'ENOENT') {
       console.error(`An error occurred while trying to read the secret: ${secretName}. Err: ${err}`);
     } else {
       console.warn(`Could not find the secret, probably not running in swarm mode: ${secretName}. Err: ${err}`);
 
-      return fs.readFileSync(`../secrets/${secretName}.txt`, 'utf8');
+      try {
+        console.info(`Try to find the secret ${secretName} locally for dev purpose.`);
+        return fs.readFileSync(`../secrets/${secretName}.txt`, 'utf8');
+      } catch(err) {
+        console.error(`Could not find the secret ${secretName} locally either. Err: ${err}`);
+      }
     }
     return false;
   }

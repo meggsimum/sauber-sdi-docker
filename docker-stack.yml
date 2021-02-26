@@ -119,6 +119,29 @@ services:
         ports:
             - "8080:8080"
 
+    geoserver_init:
+        image: "sauberprojekt/geoserver_init:${TAG:-master}"
+        networks:
+            - sauber-network
+        secrets:
+            - geoserver_user
+            - geoserver_password
+            - app_password
+        environment:
+            - GSINIT_WS=station_data,image_mosaics
+            - GSINIT_STATION_WS=station_data
+            - GSINIT_STATION_DS=station_data
+            - GSINIT_PG_HOST=db
+            - GSINIT_PG_PORT=5432
+            - GSINIT_PG_SCHEMA=station_data
+            - GSINIT_PG_DB=sauber_data
+            - GSINIT_VERBOSE=1
+        deploy:
+            replicas: 1
+        depends_on:
+            - geoserver
+        command: ["./wait-for.sh", "geoserver:8080", "--", "npm", "start"]
+
     postgrest_raster_publisher:
         image: "sauberprojekt/postgrest:${TAG:-master}"
         networks:

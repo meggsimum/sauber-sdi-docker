@@ -15,5 +15,8 @@ RUN npm install --only=production
 COPY  /js-utils/logging.js /opt/js-utils/logging.js
 COPY  /js-utils/docker-secrets.js /opt/js-utils/docker-secrets.js
 COPY  /index.js /opt/index.js
+COPY  /wait-for.sh /opt/wait-for.sh
+
+RUN chmod +x /opt/wait-for.sh
 
 CMD ["npm", "start"]
