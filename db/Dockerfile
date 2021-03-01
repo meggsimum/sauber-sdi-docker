@@ -1,10 +1,10 @@
 ARG POSTGRES_VERSION=12
-ARG TIMESCALE_VERSION=1.7.4
+ARG TIMESCALE_VERSION=2.1.0
 
 FROM timescale/timescaledb:${TIMESCALE_VERSION}-pg${POSTGRES_VERSION}
 LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
-ARG POSTGIS_VERSION=3.0.2
+ARG POSTGIS_VERSION=3.1.1
 ENV POSTGIS=${POSTGIS_VERSION}
 
 RUN set -ex \
@@ -35,8 +35,6 @@ RUN set -ex \
         gdal \
     \
     && apk add --no-cache --virtual .build-deps-edge \
-        --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
-        --repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
         g++ gdal-dev geos-dev proj-dev protobuf-c-dev \
     && cd /usr/src/postgis \
     && ./autogen.sh \
