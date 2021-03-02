@@ -41,11 +41,11 @@ then
   docker build --rm -f "postgrest/Dockerfile" -t sauberprojekt/postgrest:$MASTER_TAG "postgrest"
   docker tag sauberprojekt/postgrest:$MASTER_TAG sauberprojekt/postgrest:$DATE_TAG
 
-  docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$MASTER_TAG "lubw_download"
-  docker tag sauberprojekt/lubw_download:$MASTER_TAG sauberprojekt/lubw_download:$DATE_TAG
-
   docker build --rm -f "lanuv_download/Dockerfile" -t sauberprojekt/lanuv_download:$MASTER_TAG "lanuv_download"
   docker tag sauberprojekt/lanuv_download:$MASTER_TAG sauberprojekt/lanuv_download:$DATE_TAG
+
+  docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$MASTER_TAG "lubw_download"
+  docker tag sauberprojekt/lubw_download:$MASTER_TAG sauberprojekt/lubw_download:$DATE_TAG
 
   docker build --rm -f "geoserver_publisher/Dockerfile" -t sauberprojekt/geoserver_raster_publisher:$MASTER_TAG "geoserver_publisher"
   docker tag sauberprojekt/geoserver_raster_publisher:$MASTER_TAG sauberprojekt/geoserver_raster_publisher:$DATE_TAG
