@@ -80,8 +80,8 @@ async function adaptSecurity() {
     console.info(`Successfully added role ${role} to user ${user}`);
   }
 
-  // disable user
-  const adminDisabled = await grc.security.updateUser('admin', 'geoserver', false);
+  // disable default admin user
+  const adminDisabled = await grc.security.updateUser(geoserverDefaultUser, geoserverDefaultPw, false);
   if (adminDisabled) {
     console.info('Successfully disabled default "admin" user');
   }
@@ -152,7 +152,7 @@ async function asyncForEach(array, callback) {
 }
 
 /**
- * Exits scrpt and logs an error message.
+ * Exits script and logs an error message.
  *
  * @param {String} msg The error message to log before exiting
  */

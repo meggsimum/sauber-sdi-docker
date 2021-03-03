@@ -1,7 +1,7 @@
 /**
- * Logs message embedded in a big frame.
+ * Logs given message embedded in a big frame.
  *
- * @param {String} msg
+ * @param {String} msg Message to log
  */
 export function framedBigLogging(msg) {
   console.log('##############################################################');
@@ -11,9 +11,9 @@ export function framedBigLogging(msg) {
 }
 
 /**
- * Logs message embedded in a medium frame.
+ * Logs given message embedded in a medium frame.
  *
- * @param {String} msg
+ * @param {String} msg Message to log
  */
 export function framedMediumLogging(msg) {
   console.log('--------------------------------------------------------------');
