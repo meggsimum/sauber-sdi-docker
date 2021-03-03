@@ -22,6 +22,13 @@ dockerSecret.read = function read(secretName) {
       console.error(`An error occurred while trying to read the secret: ${secretName}. Err: ${err}`);
     } else {
       console.log(`Could not find the secret, probably not running in swarm mode: ${secretName}. Err: ${err}`);
+
+      try {
+        console.info(`Try to find the secret ${secretName} locally for dev purpose.`);
+        return fs.readFileSync(`../secrets/${secretName}.txt`, 'utf8');
+      } catch(err) {
+        console.error(`Could not find the secret ${secretName} locally either. Err: ${err}`);
+      }
     }
     return false;
   }
