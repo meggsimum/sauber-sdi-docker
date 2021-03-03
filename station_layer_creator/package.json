@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/meggsimum/sauber-sdi-docker#readme",
   "dependencies": {
-    "geoserver-node-client": "https://github.com/chrismayer/geoserver-node-client.git#master",
+    "geoserver-node-client": "https://github.com/meggsimum/geoserver-node-client.git#master",
     "node-fetch": "^2.6.0",
     "pg": "^8.5.1"
   },

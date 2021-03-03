@@ -10,7 +10,7 @@ import GeoServerRestClient from 'geoserver-node-client';
 import {framedBigLogging, framedMediumLogging} from './js-utils/logging.js';
 import config from './config/config.js';
 
-const verbose = process.env.STCR_VERBOSE || false;
+const verbose = process.env.STCR_VERBOSE || true;
 
 // DB SETTINGS
 
@@ -28,7 +28,6 @@ const geoserverRestUrl = config.geoserverUrl + '/rest';
 verboseLogging('GeoServer URL: ', config.geoserverUrl);
 verboseLogging('GeoServer REST URL:', geoserverRestUrl);
 verboseLogging('GeoServer REST User:', config.geoserverRestUser);
-verboseLogging('GeoServer REST PW:', config.geoserverRestPw);
 verboseLogging('GeoServer WS:', config.geoserverWs);
 verboseLogging('GeoServer DS:', config.geoserverDs);
 verboseLogging('GeoServer Station FT:', config.stationsTypeName);
@@ -37,8 +36,9 @@ verboseLogging('GeoServer Station FT:', config.stationsTypeName);
 const grc = new GeoServerRestClient(geoserverRestUrl, config.geoserverRestUser, config.geoserverRestPw);
 
 /**
- * Main process creting the DB views and the corresponding GeoServer layers
- * for all the station / pollutant combinations.
+ * Main process creating the DB views and the corresponding GeoServer layers
+ * for all the station+pollutant combinations and for aggregated stations for
+ * a pollutant data.
  */
 async function createStationLayers() {
   framedBigLogging('Start process creating SAUBER station layers in to GeoServer...');
@@ -58,6 +58,9 @@ async function createStationLayers() {
 
     console.info(`Found ${stationsFc.features.length} stations registered in SAUBER GeoServer`);
 
+    // all pollutants for later usage
+    let allPollutants = [];
+
     // go over all stations
     await asyncForEach(stationsFc.features, async station => {
       const attrs = station.properties;
@@ -67,6 +70,9 @@ async function createStationLayers() {
 
       // go over all pollutants for station
       const pollutants = JSON.parse(attrs.pollutants);
+      // collect all pollutants for later usage
+      allPollutants = allPollutants.concat(pollutants);
+
       await asyncForEach(pollutants, async pollutant => {
         console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
@@ -79,30 +85,48 @@ async function createStationLayers() {
           return;
         }
 
-        const dbView = await createDbView(stationCode, pollutant);
+        const dbView = await createDbView(pollutant, stationCode);
         if (dbView) {
           await createGeoServerLayer(dbView, stationCode);
         } else {
           console.error(`No valid DB returned, skipping GeoServer layer creation for ${stationCode} ${pollutant}`);
         }
       });
+    });
+
+    // unique list of pollutants
+    const uniquePollutants = allPollutants.filter((x, i, a) => a.indexOf(x) == i);
+    console.info('Creating aggregated station layers for pollutants', uniquePollutants);
+
+    await asyncForEach(uniquePollutants, async pollutant => {
+      console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
+      console.log('Pollutant', pollutant);
+
+      const dbView = await createDbView(pollutant);
+      if (dbView) {
+        await createGeoServerLayer(dbView);
+      } else {
+        console.error(`No valid DB returned, skipping GeoServer aggregated layer creation for ${pollutant}`);
+      }
     })
 
   } else {
-    console.error('Got non HTTP 200 response (HTTP status code', response.status, ') for loading raster meta info');
+    console.error('Got non HTTP 200 response (HTTP status code', response.status, ') for loading station WFS data');
     return false;
   }
 }
 
 /**
- * Creates a DB view for the combination of a station and a measured pollutant.
+ * Creates a DB view for either
+ *   - the combination of a station and a measured pollutant or
+ *   - the aggregated stations for a pollutant
  *
- * @param {String} stationCode The station code, e.g. RODE
  * @param {String} pollutant The pollutant, e.g. NO2_AM1H
+ * @param {String} stationCode The station code, e.g. RODE
  */
-async function createDbView(stationCode, pollutant) {
-  console.info(`Creating DB view for ${stationCode} ${pollutant}`);
-
+async function createDbView(pollutant, stationCode) {
+  let sql;
+  let dbViewName = null;
   const Client = pg.Client;
   const client = new Client({
     host: config.postgresHost,
@@ -112,22 +136,50 @@ async function createDbView(stationCode, pollutant) {
     password: config.postgresPw,
   });
 
-  client.connect();
-  const sql = `SELECT station_data.create_prediction_view('${stationCode}', '${pollutant}');`;
-  verboseLogging('Executing SQL:', sql);
-  const dbResp = await client.query(sql);
+  try {
 
-  let dbViewName = null;
-  if (dbResp.rows.length > 0 && dbResp.rows[0].create_prediction_view &&
-        dbResp.rows[0].create_prediction_view !== '1') {
-    dbViewName = dbResp.rows[0].create_prediction_view;
+    await client.connect();
 
-    console.info(`Created DB view ${dbViewName} for ${stationCode} ${pollutant}`);
-  } else {
-    console.error(`Creation of DB view for ${stationCode} ${pollutant} failed!`);
+    if (stationCode) {
+      // Combined Station + Pollutant Prediction View as
+      console.info(`Creating combined station+pollutant DB view for ${stationCode} ${pollutant}`);
+
+      sql = `SELECT station_data.create_prediction_view('${stationCode}', '${pollutant}');`;
+      verboseLogging('Executing SQL:', sql);
+      const dbResp = await client.query(sql);
+
+      if (dbResp.rows.length > 0 && dbResp.rows[0].create_prediction_view &&
+            dbResp.rows[0].create_prediction_view !== '1') {
+        dbViewName = dbResp.rows[0].create_prediction_view;
+
+        console.info(`Created DB view ${dbViewName} for ${stationCode} ${pollutant}`);
+      } else {
+        console.error(`Creation of DB view for ${stationCode} ${pollutant} failed!`);
+      }
+    } else {
+      // Aggregated Station Prediction View as
+      console.info(`Creating aggregated pollutant DB view for ${pollutant}`);
+
+      sql = `SELECT station_data.create_component_view('cm_new_${pollutant}');`;
+      verboseLogging('Executing SQL:', sql);
+      const dbResp = await client.query(sql);
+
+      if (dbResp.rows.length > 0 && dbResp.rows[0].create_component_view &&
+            dbResp.rows[0].create_prediction_view !== '1') {
+        dbViewName = dbResp.rows[0].create_component_view;
+
+        console.info(`Created aggregated stations for pollutant DB view ${dbViewName} for ${pollutant}`);
+      } else {
+        console.error(`Creation of aggregated stations for pollutant DB view for ${pollutant} failed!`);
+      }
+    }
+
+    await client.end();
+
+  } catch (error) {
+      console.log('Error while creating DB view', error);
+      return;
   }
-
-  client.end();
 
   return dbViewName;
 }
@@ -139,7 +191,10 @@ async function createDbView(stationCode, pollutant) {
  * @param {String} stationCode The station code, e.g. RODE
  */
 async function createGeoServerLayer(dbViewName, stationCode) {
-  console.info(`Creating GeoServer layer for ${stationCode} ${dbViewName}`);
+  console.info(`Creating GeoServer layer for ${dbViewName}`);
+
+  // creating combined station+pollutant layer?
+  const stationLayer = !!stationCode;
 
   const connected = await grc.exists();
 
@@ -149,13 +204,15 @@ async function createGeoServerLayer(dbViewName, stationCode) {
 
   let layerName = dbViewName;
 
-  // little hack to fulfill naming convention between station WFS and layer name
-  if (stationCode.indexOf('-') !== -1) {
-    const pos_ = dbViewName.indexOf("_"); // position of first '_'
-    // replace first '_' with '-' due to naming convention
-    layerName = dbViewName.replace(dbViewName.substring(pos_, pos_+1), "-");
+  if (stationLayer) {
+    // little hack to fulfill naming convention between station WFS and layer name
+    if (stationCode.indexOf('-') !== -1) {
+      const pos_ = dbViewName.indexOf("_"); // position of first '_'
+      // replace first '_' with '-' due to naming convention
+      layerName = dbViewName.replace(dbViewName.substring(pos_, pos_+1), "-");
 
-    verboseLogging(`Corrected layer name from ${dbViewName} to ${layerName}`);
+      verboseLogging(`Corrected layer name from ${dbViewName} to ${layerName}`);
+    }
   }
 
   const layerCreated = await grc.layers.publishFeatureType(
@@ -166,6 +223,24 @@ async function createGeoServerLayer(dbViewName, stationCode) {
 
   if (layerCreated) {
     console.info(`Successfully created GeoServer layer ${layerName}`);
+
+    if (!stationLayer) {
+      // enable time dimension for aggregated layers
+      const attribute = 'date_time';
+      const presentation = 'DISCRETE_INTERVAL';
+      const resolutionMs = 3600000; // 1 hour
+      const defaultValue = 'MINIMUM';
+      const nearestMatch = true;
+      const rawNearestMatch = false;
+      const acceptableInterval = 'PT30M';
+      const timeEnabled = grc.layers.enableTimeFeatureType(
+        config.geoserverWs, config.geoserverDs, layerName, attribute,
+        presentation, resolutionMs, defaultValue, nearestMatch, rawNearestMatch,
+        acceptableInterval
+      );
+      console.info(`Successfully enabled TIME for dimension for GeoServer layer ${layerName}`);
+    }
+
   } else {
     console.error(`Error while creating GeoServer layer ${layerName}`);
   }
