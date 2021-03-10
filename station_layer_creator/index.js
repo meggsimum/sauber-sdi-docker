@@ -160,7 +160,7 @@ async function createDbView(pollutant, stationCode) {
       // Aggregated Station Prediction View as
       console.info(`Creating aggregated pollutant DB view for ${pollutant}`);
 
-      sql = `SELECT station_data.create_component_view('cm_new_${pollutant}');`;
+      sql = `SELECT station_data.create_component_view('${pollutant}');`;
       verboseLogging('Executing SQL:', sql);
       const dbResp = await client.query(sql);
 
@@ -209,7 +209,7 @@ async function createGeoServerLayer(dbViewName, stationCode) {
     if (stationCode.indexOf('-') !== -1) {
       const pos_ = dbViewName.indexOf("_"); // position of first '_'
       // replace first '_' with '-' due to naming convention
-      layerName = dbViewName.replace(dbViewName.substring(pos_, pos_+1), "-");
+      layerName = dbViewName.replace(dbViewName.substring(pos_, pos_ + 1), "-");
 
       verboseLogging(`Corrected layer name from ${dbViewName} to ${layerName}`);
     }
