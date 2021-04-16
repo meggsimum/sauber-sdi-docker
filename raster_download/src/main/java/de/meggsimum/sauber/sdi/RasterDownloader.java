@@ -20,11 +20,16 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.json.JSONObject;
 import org.postgresql.util.PGobject;
 
@@ -40,11 +45,14 @@ import com.pcbsys.nirvana.client.nSessionFactory;
 import com.twelvemonkeys.imageio.metadata.exif.EXIF;
 
 /**
- * Demo class to receive messages via Universal Messaging Channel and download a
- * possible reference to a raster file.
+ * Retrieve messages from universal messaging channel 
+ * Download raster from URL 
+ * Get path where image mosaic is defined 
+ * Insert raster data, metadata into database
  *
  * @author Lisa Scherf, Software AG
  * @author C. Mayer, meggsimum
+ * @author J. Kaeflein, geomer
  */
 public class RasterDownloader implements nEventListener {
 
@@ -279,7 +287,7 @@ public class RasterDownloader implements nEventListener {
 				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
 				String requestIP = requestAddress.getHostAddress();			
 				
-				if (requestIP.equals(hhiIP)) {
+				if (requestIP.equals(hhiRestPw)) {
 				
 					System.out.println("URL to raster to download: " + request);			
 		
@@ -350,6 +358,7 @@ public class RasterDownloader implements nEventListener {
 	private void downloadRaster(String request, String fileName) throws IOException, InterruptedException {
 		
 		URL url = new URL(request);
+		System.out.println(url);
 		String authStr = this.hhiRestUser + ":" + this.hhiRestPw;
 	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -390,7 +399,7 @@ public class RasterDownloader implements nEventListener {
 			System.out.println("Raster saved at " + absPath);
 			
 			is.close();
-
+			
 			try {
 				insertRaster(fileName,absPath);  // insert raster into database via raster2pgsql
 			} catch (IOException e) {
@@ -418,10 +427,8 @@ public class RasterDownloader implements nEventListener {
 
 		//declutter process builder args
 		String schemaName = evtRegion.toLowerCase().replaceAll("\\s","") +"_"+ evtPollutant.toLowerCase().replaceAll("\\s","");
-		String targetTable = schemaName +"."+ fileName;	
-		
+		String targetTable = schemaName +"."+ fileName;		
 		String url = "jdbc:postgresql://db:5432/sauber_data";
-		//String url = "jdbc:postgresql://localhost:5430/sauber_data"; // Debug JK
 		Properties props = new Properties();
 		props.setProperty("user",dbUser);
 		props.setProperty("password",dbUserPw);
@@ -438,43 +445,90 @@ public class RasterDownloader implements nEventListener {
 		createSchema.close();
 		ProcessBuilder pb =
 				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-				//new ProcessBuilder("C:/WINDOWS/system32/cmd.exe", "/C", "raster2pgsql -I -C -M -t auto "+ absPath +" "+  targetTable + " | psql -U "+ dbUser +" -d sauber_data -p 5430 -v ON_ERROR_STOP=ON"); //Debug JK
+		
 		Process p = pb.inheritIO().start();
 		p.waitFor();
+		
 		Integer exitcode = p.exitValue();
 		
 		if (exitcode != 0) {
 			System.out.println("Error inserting raster tiles: Return code "+ exitcode +". Exiting.");
 			System.exit(1);
 		}
-				
-		try {
-			insertMetadata(absPath, conn); // insert raster metadata into db
+	
+		  try {
+			insertMetadata(absPath, conn);
 		} catch (SQLException e) {
 			System.out.println("Error inserting raster metadata into DB");
 			e.printStackTrace();
 		}	
-	}
+	}	
+	
+	/*
+	 * What ImgMosaic publishes which rasters is defined in indexer.properties, key "IndexingDirectories=*"
+	 * We need to recursively search for this path from the known raster download location
+	 * This iterates over all files in geoserver_data/coverages, finds indexer.properties files and compares both file paths 
+	 */
+	public static String getPropertiesPath(String rasterDir) {
 
+		// Root dir of Mosaic definitions 
+		File propsRootDir = new File("/opt/geoserver_data/coverages");
+		
+		// extract path from downloaded raster file
+		File rasterFile = new File(rasterDir);
+		String rasterRootDir = rasterFile.getAbsoluteFile().getParent();
+				
+		// Path to specific mosaic to be found 
+		String propPath = new String();
+	
+		// Strip trailing slash from download path 
+		if (rasterRootDir.endsWith("/")) {
+			rasterRootDir = rasterDir.substring(0, rasterDir.length() - 1);
+		}
+			
+	    Iterator<File> files = FileUtils.iterateFilesAndDirs(propsRootDir,new WildcardFileFilter("indexer.properties"),TrueFileFilter.INSTANCE);
+
+	    while (files.hasNext()) {
+	    	
+	    	File file = files.next(); 
+	    	if (file.getName().equals("indexer.properties"))
+				try {
+					// Iterate through indexer files, get path value from IndexingDir key, compare to raster path
+					String fileString = FileUtils.readFileToString(file, "UTF-8");
+					String rasterIndex = fileString.split("IndexingDirectories=")[1];
+					if (rasterIndex.equals(rasterRootDir)) {
+						propPath = file.getAbsolutePath();
+					} else {
+						propPath = "0";
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+	    }
+	    return propPath;
+	}
+       	
 	private void insertMetadata(String filePathStr, Connection conn) throws SQLException, IOException {
 
 		//gather info to fill statement for raster metadata table
 		String JSONString = evtData.toString();
+		String propPath = getPropertiesPath(filePathStr);
 		String workspace = "image_mosaics";
 		String coverageName = evtRegion.toLowerCase() +"_"+ evtPollutant.toLowerCase();
 		String mosaicName = coverageName +"_mosaic";
-
-		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO image_mosaics.raster_metadata (image_path, source_payload, workspace, coverage_store, image_mosaic, is_published) VALUES(?, ?, ?, ?, ?, ?)");
+		
+		PreparedStatement inputStmt = conn.prepareStatement("INSERT INTO image_mosaics.raster_metadata (image_path, properties_path, source_payload, workspace, coverage_store, image_mosaic, is_published) VALUES(?, ?, ?, ?, ?, ?, ?)");
 
 		PGobject jsonObject = new PGobject();
 		jsonObject.setType("jsonb");
 		jsonObject.setValue(JSONString);
 		inputStmt.setString(1, filePathStr);
-		inputStmt.setObject(2, jsonObject);
-		inputStmt.setObject(3, workspace);
-		inputStmt.setObject(4, coverageName);
-		inputStmt.setString(5, mosaicName);
-		inputStmt.setInt(6, 0);
+		inputStmt.setString(2, propPath);
+		inputStmt.setObject(3, jsonObject);
+		inputStmt.setObject(4, workspace);
+		inputStmt.setObject(5, coverageName);
+		inputStmt.setString(6, mosaicName);
+		inputStmt.setInt(7, 0);
 
 		// execute statement
 		int insertReturn = inputStmt.executeUpdate();
