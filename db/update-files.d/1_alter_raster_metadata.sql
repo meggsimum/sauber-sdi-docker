@@ -1,11 +1,8 @@
 \c sauber_data
 
-DROP TABLE image_mosaics.raster_metadata;
-
 CREATE TABLE image_mosaics.raster_metadata (
 	idpk_image serial NOT NULL,
 	image_path text NOT NULL,
-	properties_path text NOT NULL,
 	source_payload jsonb NOT NULL,
 	workspace text NOT NULL,
 	coverage_store text NOT NULL,
@@ -16,6 +13,7 @@ CREATE TABLE image_mosaics.raster_metadata (
 	CONSTRAINT raster_metadata_uq_path UNIQUE (image_path)
 );
 
+ALTER TABLE image_mosaics.raster_metadata ADD COLUMN IF NOT EXISTS properties_path TEXT;
 ALTER TABLE image_mosaics.raster_metadata OWNER TO sauber_manager;
 GRANT SELECT ON TABLE image_mosaics.raster_metadata TO sauber_user;
 GRANT INSERT ON TABLE image_mosaics.raster_metadata TO sauber_user;
