@@ -230,7 +230,6 @@ psql -d sauber_data -q <<-'EOSQL'
     GRANT USAGE ON SCHEMA station_data TO anon;
     GRANT USAGE ON SCHEMA basic_auth TO anon;
     GRANT SELECT ON TABLE basic_auth.users TO anon;
-    GRANT USAGE ON SCHEMA daten TO anon;
     GRANT USAGE ON SCHEMA image_mosaics TO anon;
     GRANT SELECT,INSERT,UPDATE(is_published) ON TABLE image_mosaics.raster_metadata TO anon;
     GRANT SELECT,USAGE ON SEQUENCE image_mosaics.raster_metadata_idpk_image_seq TO anon;
