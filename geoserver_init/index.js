@@ -47,6 +47,7 @@ verboseLogging('PG Database:    ', pgDb);
  * Main process:
  *  - Create workspaces
  *  - Change user + password
+ *  - Set proxy base url
  *  - Create store and layer for stations
  */
 async function initGeoserver() {
