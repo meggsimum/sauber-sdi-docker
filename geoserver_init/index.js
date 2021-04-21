@@ -33,14 +33,15 @@ const role = 'ADMIN';
 
 verboseLogging('-----------------------------------------------');
 
-verboseLogging('Workspaces:  ', workspacesList);
-verboseLogging('Station WS:  ', stationWorkspace);
-verboseLogging('Station DS:  ', stationDataStore);
-verboseLogging('PG Host:     ', pgHost);
-verboseLogging('PG Port:     ', pgPort);
-verboseLogging('PG User:     ', pgUser);
-verboseLogging('PG Schema:   ', pgSchema);
-verboseLogging('PG Database: ', pgDb);
+verboseLogging('Workspaces:     ', workspacesList);
+verboseLogging('Station WS:     ', stationWorkspace);
+verboseLogging('Station DS:     ', stationDataStore);
+verboseLogging('PG Host:        ', pgHost);
+verboseLogging('PG Port:        ', pgPort);
+verboseLogging('PG User:        ', pgUser);
+verboseLogging('Proxy Base URL: ', proxyBaseUrl);
+verboseLogging('PG Schema:      ', pgSchema);
+verboseLogging('PG Database:    ', pgDb);
 
 /**
  * Main process:
