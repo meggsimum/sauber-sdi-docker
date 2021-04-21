@@ -23,6 +23,7 @@ const stationDataStore = process.env.GSINIT_STATION_DS || 'station_data';
 const pgHost = process.env.GSINIT_PG_HOST || 'db';
 const pgPort = process.env.GSINIT_PG_PORT || '5432';
 const pgUser = process.env.GSINIT_PG_USER || 'app';
+const proxyBaseUrl = process.env.GSINIT_PROXY_BASE_URL;
 const pgPassword = dockerSecret.read('app_password') || process.env.GSINIT_PG_PW;
 const pgSchema = process.env.GSINIT_PG_SCHEMA || 'station_data';
 const pgDb = process.env.GSINIT_PG_DB || 'sauber_data';
@@ -54,10 +55,30 @@ async function initGeoserver() {
 
   await createWorkspaces();
 
+  await setProxyBaseUrl();
+
   await createPostgisDatastore();
 
   framedBigLogging('... DONE initalizing SAUBER GeoServer');
 }
+
+/**
+ * Sets the proxy base url if it is provided
+ */
+ async function setProxyBaseUrl () {
+  if (!proxyBaseUrl) {
+    // no proxy base url provided
+    return;
+  }
+
+  const proxyBaseUrlChanged = await grc.settings.updateProxyBaseUrl(proxyBaseUrl);
+  if (proxyBaseUrlChanged) {
+    console.info(`Set proxy base url to "${proxyBaseUrl}"`);
+  } else {
+    console.info('Setting proxy base url failed.');
+  }
+}
+
 
 /**
  * Adapts security settings for GeoServer
