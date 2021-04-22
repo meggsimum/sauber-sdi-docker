@@ -24,8 +24,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
-import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -42,7 +40,6 @@ import com.pcbsys.nirvana.client.nEventProperties;
 import com.pcbsys.nirvana.client.nSession;
 import com.pcbsys.nirvana.client.nSessionAttributes;
 import com.pcbsys.nirvana.client.nSessionFactory;
-import com.twelvemonkeys.imageio.metadata.exif.EXIF;
 
 /**
  * Retrieve messages from universal messaging channel 
@@ -358,7 +355,6 @@ public class RasterDownloader implements nEventListener {
 	private void downloadRaster(String request, String fileName) throws IOException, InterruptedException {
 		
 		URL url = new URL(request);
-		System.out.println(url);
 		String authStr = this.hhiRestUser + ":" + this.hhiRestPw;
 	    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -399,7 +395,7 @@ public class RasterDownloader implements nEventListener {
 			System.out.println("Raster saved at " + absPath);
 			
 			is.close();
-			
+
 			try {
 				insertRaster(fileName,absPath);  // insert raster into database via raster2pgsql
 			} catch (IOException e) {
@@ -444,7 +440,7 @@ public class RasterDownloader implements nEventListener {
 		conn.commit();
 		createSchema.close();
 		ProcessBuilder pb =
-				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
+				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -R -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
 		
 		Process p = pb.inheritIO().start();
 		p.waitFor();
@@ -456,7 +452,7 @@ public class RasterDownloader implements nEventListener {
 			System.exit(1);
 		}
 	
-		  try {
+		try {
 			insertMetadata(absPath, conn);
 		} catch (SQLException e) {
 			System.out.println("Error inserting raster metadata into DB");
