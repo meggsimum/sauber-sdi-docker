@@ -48,7 +48,7 @@ import com.twelvemonkeys.imageio.metadata.exif.EXIF;
  * Retrieve messages from universal messaging channel 
  * Download raster from URL 
  * Get path where image mosaic is defined 
- * Insert raster data, metadata into database
+ * Insert raster data, metadata	 into database
  *
  * @author Lisa Scherf, Software AG
  * @author C. Mayer, meggsimum
@@ -287,7 +287,7 @@ public class RasterDownloader implements nEventListener {
 				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
 				String requestIP = requestAddress.getHostAddress();			
 				
-				if (requestIP.equals(hhiRestPw)) {
+				if (requestIP.equals(hhiIP)) {
 				
 					System.out.println("URL to raster to download: " + request);			
 		
