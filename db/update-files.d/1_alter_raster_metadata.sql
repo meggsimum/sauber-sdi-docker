@@ -1,6 +1,6 @@
 \c sauber_data
 
-CREATE TABLE image_mosaics.raster_metadata (
+CREATE TABLE IF NOT EXISTS image_mosaics.raster_metadata (
 	idpk_image serial NOT NULL,
 	image_path text NOT NULL,
 	source_payload jsonb NOT NULL,
@@ -8,6 +8,7 @@ CREATE TABLE image_mosaics.raster_metadata (
 	coverage_store text NOT NULL,
 	image_mosaic text NOT NULL,
 	is_published int2 NOT NULL DEFAULT 0,
+	properties_path text NOT NULL,
 	CONSTRAINT raster_metadata_chk CHECK (((is_published = ANY (ARRAY[0, 1])))),
 	CONSTRAINT raster_metadata_pkey PRIMARY KEY (idpk_image),
 	CONSTRAINT raster_metadata_uq_path UNIQUE (image_path)

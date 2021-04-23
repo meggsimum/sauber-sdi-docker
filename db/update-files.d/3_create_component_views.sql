@@ -1,9 +1,7 @@
 \c sauber_data 
-
 --
 ---- Create component view function
 --
-
 CREATE OR REPLACE FUNCTION station_data.create_component_view (
   component_name text
 )
@@ -13,7 +11,6 @@ DECLARE
   component_name ALIAS FOR $1;
   error_text TEXT;
 BEGIN
-
   IF component_name IS NULL THEN
     RAISE INFO 'Error: Empty input variable';
  	RETURN 1;
@@ -32,12 +29,10 @@ BEGIN
 	     JOIN station_data.lut_station s_1 ON tp.fk_station = s_1.idpk_station
 	  WHERE co_1.component_name = %2$L::text
 	  ORDER BY tp.date_time DESC;           
-
       GRANT SELECT ON station_data.agg_prediction_%1$s TO app;
 	', replace(lower(component_name),'-','_'), component_name);
 		
   RETURN FORMAT('agg_prediction_%1$s', replace(lower(component_name),'-','_'));
-
   EXCEPTION
   WHEN others THEN
         GET STACKED DIAGNOSTICS error_text = PG_EXCEPTION_CONTEXT;
@@ -52,25 +47,16 @@ CALLED ON NULL INPUT
 SECURITY INVOKER
 PARALLEL UNSAFE
 COST 100;
-
 ALTER FUNCTION station_data.create_component_view (component_name text)
   OWNER TO sauber_manager;
-
-GRANT EXECUTE ON FUNCTION station_data.create_component_view(text) TO app;
-GRANT EXECUTE ON FUNCTION station_data.create_component_view(text) TO sauber_user;
-GRANT EXECUTE ON FUNCTION station_data.create_component_view(text) TO sauber_manager;
 
 --
 ---- Create prediction view function
 --
 
-
-CREATE OR REPLACE FUNCTION station_data.create_prediction_view (
-  station_code text,
-  component_name text
-)
-RETURNS text AS
-$body$
+CREATE FUNCTION station_data.create_prediction_view(station_code text, component_name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $_$
 DECLARE
   station_code ALIAS FOR $1;
   component_name ALIAS FOR $2;
@@ -127,13 +113,6 @@ BEGIN
 	 
 
 END;
-$body$
-LANGUAGE 'plpgsql'
-VOLATILE
-CALLED ON NULL INPUT
-SECURITY INVOKER
-PARALLEL UNSAFE
-COST 100;
+$_$;
 
-ALTER FUNCTION station_data.create_prediction_view (station_code text, component_name text)
-  OWNER TO postgres;
+ALTER FUNCTION station_data.create_prediction_view(station_code text, component_name text) OWNER TO sauber_manager;
