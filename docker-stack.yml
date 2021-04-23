@@ -136,6 +136,7 @@ services:
             - GSINIT_PG_SCHEMA=station_data
             - GSINIT_PG_DB=sauber_data
             - GSINIT_VERBOSE=1
+            - GSINIT_PROXY_BASE_URL=https://sauber-sdi.meggsimum.de/geoserver
         deploy:
             replicas: 1
         depends_on:
