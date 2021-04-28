@@ -12,8 +12,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
-
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,7 +44,6 @@ import com.pcbsys.nirvana.client.nChannelAlreadyExistsException;
 import com.pcbsys.nirvana.client.nChannelAttributes;
 import com.pcbsys.nirvana.client.nConsumeEvent;
 import com.pcbsys.nirvana.client.nEventListener;
-import com.pcbsys.nirvana.client.nEventProperties;
 import com.pcbsys.nirvana.client.nSession;
 import com.pcbsys.nirvana.client.nSessionAttributes;
 import com.pcbsys.nirvana.client.nSessionFactory;
@@ -222,52 +222,47 @@ public class JSONDownloader implements nEventListener {
 	 */
 	public void go(nConsumeEvent evt) {
 
-		// Print the message data
-		// Print the timestamp
+		// Print message timestamp
 		if (evt.hasAttributes()) {
 			System.out.println("Published on: " + new Date(evt.getAttributes().getTimestamp()).toString());
 		}
-		// Print the properties
-		nEventProperties prop = evt.getProperties();
-		if (prop != null) {
-			System.out.println("Source: " + prop.get("source"));
-			System.out.println("Category: " + prop.get("category"));
-			System.out.println("URL: " + prop.get("url")); //JK debug
+		
+		try {
+			// Incoming message data to JSON 
+			JSONDownloader.evtData = new JSONObject(new String(evt.getEventData()));
+			
+			System.out.println(evtData);
+			// Get message metainfo 
+			Long timeStamp = evtData.getLong("timestamp");			
+			JSONObject payload = evtData.getJSONObject("payload");				
+			String request = payload.getString("url");
+			String type = payload.getString("type");
+			String region = payload.getString("region");
+					
+			//Construct URL from message
+			URL requestUrl = new URL(request);
+			InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
+			String requestIP = requestAddress.getHostAddress();			
+			
+			if (requestIP.equals(hhiIP)) {
+				try {
+					this.downloadJSON(requestUrl, region, type, timeStamp);
+				} catch (IOException e) {
+					System.out.println("Could not download JSON file");
+					e.printStackTrace();
+				} catch (SQLException e) {
+					System.out.println("Could not insert JSON to DB");
+					e.printStackTrace();
+				}
+			} else {
+				System.out.println("Request URL " + requestIP + " does not match allowed IP");
+				System.exit(1);
+			}				
+		} catch (JSONException | MalformedURLException | UnknownHostException  e) {
+			e.printStackTrace();
 		}
-
-		// download raster
-
-		if (prop.get("source").equals("hhi")) {			
-			try {
-				JSONDownloader.evtData = new JSONObject(new String(evt.getEventData()));
-				Long timeStamp = evtData.getLong("timestamp");			
-				JSONObject payload = evtData.getJSONObject("payload");				
-				String request = payload.getString("url");
-				String type = payload.getString("type");
-				String region = payload.getString("region");
-
-				URL requestUrl = new URL(request);
-				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
-				String requestIP = requestAddress.getHostAddress();			
-				
-				if (requestIP.equals(hhiIP)) {
-					try {
-						this.downloadJSON(requestUrl, region, type, timeStamp);
-					} catch (IOException e) {
-						System.out.println("Could not download JSON file");
-						e.printStackTrace();
-					}
-				} else {
-					System.out.println("Request URL " + requestIP + " does not match allowed IP");
-					System.exit(1);
-				}		
-				
-		  	} catch(Exception e) {
-		  		e.printStackTrace();
-		  		System.exit(1);
-		  	};
-		}	
-	}
+		
+	}	
 
 	/**
 	 * Create a Session to the given Universal Messaging realms with session
@@ -397,8 +392,7 @@ public class JSONDownloader implements nEventListener {
 			String selectQuery = "SELECT station_data.prediction_parse()";
 			
 			ResultSet rSet = parseStmt.executeQuery(selectQuery);
-			
-			//TODO: Returns completion message from DB function or PSQL Error (eg. invalid JSON). Handle PSQL Errors?
+		
 			while(rSet.next()) {
 				  String output = rSet.getString(1);
 				  System.out.println(output);
@@ -408,7 +402,6 @@ public class JSONDownloader implements nEventListener {
 			parseStmt.close();
 			conn.close();
 			System.out.println("Done.");
-			System.exit(0);
 
 		} else
 			System.out.println("Could not insert JSON.");
