@@ -1,3 +1,8 @@
+####
+# Original file from https://github.com/docker-library/postgres/blob/master/11/docker-entrypoint.sh
+# Alterations in main() marked
+####
+
 #!/usr/bin/env bash
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
@@ -322,16 +327,16 @@ _main() {
 			echo
 		else
 
-
-
+			#### Run init process for designated update folder even when database already exists
 			export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
-
 			docker_process_init_files /update-files.d/*
 			docker_temp_server_stop
-
+			
 			echo 
-			echo 'PostgreSQL Database directory appears to contain a database; Finished applying updates'
-			echo 
+			echo 'PostgreSQL Database directory appears to contain a database' 
+			echo  'Finished applying updates if available'
+			echo
+			##### End of alterations 
 		fi
 	fi
 
