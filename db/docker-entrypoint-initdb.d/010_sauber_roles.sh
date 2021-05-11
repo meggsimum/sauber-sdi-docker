@@ -52,7 +52,7 @@ done
 # The functions check if a user already exists to avoid issues with re-deploying the DB service...
 # on an existing volume, i.e. avoid errors when trying to drop users with dependencies 
 echo "Creating users"
-psql -U "${POSTGRES_USER}" -q<<-'EOSQL'
+psql -U "${POSTGRES_USER}" -q <<-'EOSQL'
     DO
     $do$
     BEGIN
