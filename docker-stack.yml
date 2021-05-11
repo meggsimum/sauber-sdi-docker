@@ -63,7 +63,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/postgis_alpine:${TAG:-master}"
+        image: "sauberprojekt/db:${TAG:-master}"
         networks:
             - sauber-network
         volumes:

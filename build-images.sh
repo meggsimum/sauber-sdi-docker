@@ -18,8 +18,8 @@ MASTER_TAG="master"
 echo "USING THE FOLLOWING TAG FOR IMAGE BUILD "$MASTER_TAG
 echo "USING THE FOLLOWING TAG FOR IMAGE BUILD "$DATE_TAG
 
-docker build --rm -f "db/Dockerfile" -t sauberprojekt/postgis_alpine:$MASTER_TAG "db"
-docker tag sauberprojekt/postgis_alpine:$MASTER_TAG sauberprojekt/postgis_alpine:$DATE_TAG
+docker build --rm -f "db/Dockerfile" -t sauberprojekt/db:$MASTER_TAG "db"
+docker tag sauberprojekt/db:$MASTER_TAG sauberprojekt/db:$DATE_TAG
 
 docker build --rm -f "raster_download/Dockerfile" -t sauberprojekt/raster_download:$MASTER_TAG "raster_download"
 docker tag sauberprojekt/raster_download:$MASTER_TAG sauberprojekt/raster_download:$DATE_TAG
@@ -52,8 +52,8 @@ if [ $PUSH_TO_HUB -eq 1 ]
 then
   echo "Push images to hub.docker"
 
-  docker push sauberprojekt/postgis_alpine:$MASTER_TAG
-  docker push sauberprojekt/postgis_alpine:$DATE_TAG
+  docker push sauberprojekt/db:$MASTER_TAG
+  docker push sauberprojekt/db:$DATE_TAG
 
   docker push sauberprojekt/raster_download:$MASTER_TAG
   docker push sauberprojekt/raster_download:$DATE_TAG
