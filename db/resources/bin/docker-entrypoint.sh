@@ -1,9 +1,9 @@
+#!/usr/bin/env bash
 ####
 # Original file from https://github.com/docker-library/postgres/blob/master/11/docker-entrypoint.sh
 # Alterations in main() marked
 ####
 
-#!/usr/bin/env bash
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
@@ -334,7 +334,7 @@ _main() {
 			
 			echo 
 			echo 'PostgreSQL Database directory appears to contain a database' 
-			echo  'Finished applying updates if available'
+			echo 'Finished applying updates if available'
 			echo
 			##### End of alterations 
 		fi

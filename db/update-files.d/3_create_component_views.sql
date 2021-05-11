@@ -54,7 +54,7 @@ ALTER FUNCTION station_data.create_component_view (component_name text)
 ---- Create prediction view function
 --
 
-CREATE FUNCTION station_data.create_prediction_view(station_code text, component_name text) RETURNS text
+CREATE OR REPLACE FUNCTION station_data.create_prediction_view(station_code text, component_name text) RETURNS text
     LANGUAGE plpgsql
     AS $_$
 DECLARE
