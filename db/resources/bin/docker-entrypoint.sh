@@ -295,13 +295,11 @@ _main() {
 			exec su-exec postgres "$BASH_SOURCE" "$@"
 		fi
 
-			docker_verify_minimum_env
-			docker_temp_server_start "$@"
+		docker_verify_minimum_env
 
 		# only run initialization on an empty data directory
 		if [ -z "$DATABASE_ALREADY_EXISTS" ]; then
 		
-
 			# check dir permissions to reduce likelihood of half-initialized database
 			ls /docker-entrypoint-initdb.d/ > /dev/null
 			ls /update-files.d/* > /dev/null
@@ -328,6 +326,8 @@ _main() {
 		else
 
 			#### Run init process for designated update folder even when database already exists
+			ls /update-files.d/* > /dev/null
+			docker_temp_server_start "$@"
 			export PGPASSWORD="${PGPASSWORD:-$POSTGRES_PASSWORD}"
 			docker_process_init_files /update-files.d/*
 			docker_temp_server_stop
