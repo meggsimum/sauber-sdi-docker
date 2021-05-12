@@ -1,15 +1,15 @@
 ARG POSTGRES_VERSION=12
-ARG TIMESCALE_VERSION=1.7.4
+ARG TIMESCALE_VERSION=2.1.0
 
 FROM timescale/timescaledb:${TIMESCALE_VERSION}-pg${POSTGRES_VERSION}
 LABEL maintainer="Julian Kaeflein<Julian.Kaeflein@geomer.de>"
 
-ARG POSTGIS_VERSION=3.0.2
+ARG POSTGIS_VERSION=3.1.1
 ENV POSTGIS=${POSTGIS_VERSION}
 
 RUN set -ex \
     \
-    && apk add --no-cache --virtual .fetch-deps ca-certificates openssl tar \
+    && apk add --no-cache --virtual .fetch-deps ca-certificates openssl tar bash \
     \
     && wget -O postgis.tar.gz "https://github.com/postgis/postgis/archive/$POSTGIS_VERSION.tar.gz" \
     && mkdir -p /usr/src/postgis \
@@ -35,8 +35,6 @@ RUN set -ex \
         gdal \
     \
     && apk add --no-cache --virtual .build-deps-edge \
-        --repository http://dl-cdn.alpinelinux.org/alpine/edge/community \
-        --repository http://dl-cdn.alpinelinux.org/alpine/edge/main \
         g++ gdal-dev geos-dev proj-dev protobuf-c-dev \
     && cd /usr/src/postgis \
     && ./autogen.sh \
@@ -55,6 +53,9 @@ RUN set -ex \
 
 RUN mkdir -p /docker-entrypoint-initdb.d
 COPY docker-entrypoint-initdb.d/* docker-entrypoint-initdb.d/
+
+RUN mkdir -p /update-files.d
+COPY update-files.d/* update-files.d/
 RUN chmod 775 /docker-entrypoint-initdb.d/*
 
 COPY resources/bin/import-data.sh /usr/local/bin/import-data.sh
@@ -65,6 +66,10 @@ RUN chown postgres:postgres /tmp/pg_hba.conf
 RUN chmod 600 /tmp/pg_hba.conf
 
 RUN chown -R postgres:postgres /var/lib/postgresql
+
+COPY resources/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod 775 /usr/local/bin/docker-entrypoint.sh
+RUN ln -s usr/local/bin/docker-entrypoint.sh
 
 ENV POSTGIS_ENABLE_OUTDB_RASTERS=1 \
     POSTGIS_GDAL_ENABLED_DRIVERS=ENABLE_ALL
