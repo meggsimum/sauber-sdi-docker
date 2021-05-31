@@ -25,7 +25,9 @@ CREATE TABLE IF NOT EXISTS station_data.tab_component_metainfo
 
 GRANT SELECT,INSERT ON station_data.tab_component_metainfo TO app;
 
-CREATE OR REPLACE VIEW station_data.fv_station_metadata
+DROP MATERIALIZED VIEW IF EXISTS station_data.fv_station_metadata;
+
+CREATE MATERIALIZED VIEW station_data.fv_station_metadata
 AS WITH sel AS (
          SELECT tp_1.fk_component AS comp,
             tp_1.fk_station AS stat,
