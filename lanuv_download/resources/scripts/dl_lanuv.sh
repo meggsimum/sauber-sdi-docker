@@ -67,6 +67,7 @@ sed -i -e "1d;2d;" -e "s/\*/-/g" -e "s/<//g" $OUTDIR/$OUTFILE
 sleep 1
 
 # Upload data to postgres, call in-db parser
-PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -U app -d sauber_data -c "\copy station_data.input_lanuv FROM $OUTDIR/$OUTFILE CSV DELIMITER ';' NULL '-' ENCODING 'latin-1'; SELECT station_data.lanuv_parse($DATA_TS::TEXT);"
+PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -U app -d sauber_data -c "\copy station_data.input_lanuv FROM $OUTDIR/$OUTFILE CSV DELIMITER ';' NULL '-' ENCODING 'latin-1';"
+PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -U app -d sauber_data -c "SELECT station_data.lanuv_parse($DATA_TS::TEXT);"
 
 exit
