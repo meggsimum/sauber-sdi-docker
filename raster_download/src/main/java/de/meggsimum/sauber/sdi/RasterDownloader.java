@@ -355,23 +355,22 @@ public class RasterDownloader implements nEventListener {
 
 			File imgFile = new File(filePathStr);
 
+			Boolean rasterExists = false;
+
 			if (!imgFile.isFile()) {
 				imgFile.getParentFile().mkdirs();
 				imgFile.createNewFile();
-				FileUtils.copyInputStreamToFile(is, imgFile);	
-
-			} else {
-				System.out.println("Error: File "+ fileName +" already exists.");
-				System.exit(1);
+				rasterExists = true;
 			}
 			
+			FileUtils.copyInputStreamToFile(is, imgFile);
 			String absPath = imgFile.getAbsolutePath();
 			System.out.println("Raster saved at " + absPath);
 			
 			is.close();
 
 			try {
-				insertRaster(fileName,absPath);  // insert raster into database via raster2pgsql
+				insertRaster(fileName,absPath,rasterExists);  // insert raster into database via raster2pgsql
 			} catch (IOException e) {
 				System.out.println("Error inserting raster into DB");
 				e.printStackTrace();
@@ -393,7 +392,7 @@ public class RasterDownloader implements nEventListener {
 		return;
 	}
 
-	private void insertRaster(String fileName, String absPath) throws SQLException,IOException, InterruptedException {
+	private void insertRaster(String fileName, String absPath, Boolean rasterExists) throws SQLException,IOException, InterruptedException {
 
 		//declutter process builder args
 		String schemaName = evtRegion.toLowerCase().replaceAll("\\s","") +"_"+ evtPollutant.toLowerCase().replaceAll("\\s","");
@@ -414,7 +413,7 @@ public class RasterDownloader implements nEventListener {
 		conn.commit();
 		createSchema.close();
 		ProcessBuilder pb =
-				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -R -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
+				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -d -R -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
 		
 		Process p = pb.inheritIO().start();
 		p.waitFor();
@@ -425,13 +424,18 @@ public class RasterDownloader implements nEventListener {
 			System.out.println("Error inserting raster tiles: Return code "+ exitcode +". Exiting.");
 			System.exit(1);
 		}
-	
-		try {
-			insertMetadata(absPath, conn);
-		} catch (SQLException e) {
-			System.out.println("Error inserting raster metadata into DB");
-			e.printStackTrace();
-		}	
+
+		if (rasterExists) {
+			try {
+				insertMetadata(absPath, conn);
+			} catch (SQLException e) {
+				System.out.println("Error inserting raster metadata into DB");
+				e.printStackTrace();
+			}	
+		} else {
+			System.out.println("Sucessfully updated raster.");
+		}
+			
 	}	
 	
 	/*
@@ -459,7 +463,6 @@ public class RasterDownloader implements nEventListener {
 				// Iterate through indexer files, get path value from IndexingDir key, compare to raster path
 				String fileString = FileUtils.readFileToString(file, "UTF-8");
 				String rasterIndex = fileString.split("IndexingDirectories=")[1];
-				
 				if (rasterIndex.equals(rasterRootDir)) {
 					propPath = file.getAbsolutePath();
 				} else {
@@ -500,7 +503,7 @@ public class RasterDownloader implements nEventListener {
 			conn.commit();
 			inputStmt.close();
 			conn.close();
-			System.out.println("Inserted raster metadata");
+			System.out.println("Successfully inserted raster and metadata.");
 		} else
 			System.out.println("Error: "+insertReturn+" rows inserted");
 			System.exit(1);

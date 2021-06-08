@@ -225,6 +225,7 @@ services:
             - um_server
         volumes:
             - ./geoserver_mnt/raster_data:/opt/raster_data:Z
+            - ./geoserver_mnt/geoserver_data:/opt/geoserver_data:Z
         tty:
             true
 
