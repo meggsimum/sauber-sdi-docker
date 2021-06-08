@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/sauber_raster_viewer" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>

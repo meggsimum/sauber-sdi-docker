@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/sauber_station_viewer" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>
