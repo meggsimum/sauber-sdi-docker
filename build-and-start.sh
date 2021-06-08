@@ -26,38 +26,7 @@ then
 
   echo "Building Docker Images ..."
 
-  docker build --rm -f "db/Dockerfile" -t sauberprojekt/postgis_alpine:$MASTER_TAG "db"
-  docker tag sauberprojekt/postgis_alpine:$MASTER_TAG sauberprojekt/postgis_alpine:$DATE_TAG
-
-  docker build --rm -f "raster_download/Dockerfile" -t sauberprojekt/raster_download:$MASTER_TAG "raster_download"
-  docker tag sauberprojekt/raster_download:$MASTER_TAG sauberprojekt/raster_download:$DATE_TAG
-
-  docker build --rm -f "json_download/Dockerfile" -t sauberprojekt/json_download:$MASTER_TAG "json_download"
-  docker tag sauberprojekt/json_download:$MASTER_TAG sauberprojekt/json_download:$DATE_TAG
-
-  docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$MASTER_TAG "test_messenger"
-  docker tag sauberprojekt/test_messenger:$MASTER_TAG sauberprojekt/test_messenger:$DATE_TAG
-
-  docker build --rm -f "postgrest/Dockerfile" -t sauberprojekt/postgrest:$MASTER_TAG "postgrest"
-  docker tag sauberprojekt/postgrest:$MASTER_TAG sauberprojekt/postgrest:$DATE_TAG
-
-  docker build --rm -f "lanuv_download/Dockerfile" -t sauberprojekt/lanuv_download:$MASTER_TAG "lanuv_download"
-  docker tag sauberprojekt/lanuv_download:$MASTER_TAG sauberprojekt/lanuv_download:$DATE_TAG
-
-  docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$MASTER_TAG "lubw_download"
-  docker tag sauberprojekt/lubw_download:$MASTER_TAG sauberprojekt/lubw_download:$DATE_TAG
-
-  docker build --rm -f "geoserver_publisher/Dockerfile" -t sauberprojekt/geoserver_raster_publisher:$MASTER_TAG "geoserver_publisher"
-  docker tag sauberprojekt/geoserver_raster_publisher:$MASTER_TAG sauberprojekt/geoserver_raster_publisher:$DATE_TAG
-
-  docker build --rm -f "station_layer_creator/Dockerfile" -t sauberprojekt/station_layer_creator:$MASTER_TAG "station_layer_creator"
-  docker tag sauberprojekt/station_layer_creator:$MASTER_TAG sauberprojekt/station_layer_creator:$DATE_TAG
-
-  docker build --rm -f "um_ol_demo/Webmap.dockerfile" -t sauberprojekt/um_ol_demo:$MASTER_TAG "um_ol_demo"
-  docker tag sauberprojekt/um_ol_demo:$MASTER_TAG sauberprojekt/um_ol_demo:$DATE_TAG
-
-  docker build --rm -f "um-js-demo-client/Dockerfile" -t sauberprojekt/um_js_demo:$MASTER_TAG "um-js-demo-client"
-  docker tag sauberprojekt/um_js_demo:$MASTER_TAG sauberprojekt/um_js_demo:$DATE_TAG
+  /bin/sh ./build-images.sh
 
   echo "... DONE Building Docker Images"
 
