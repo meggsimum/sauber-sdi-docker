@@ -3,8 +3,10 @@ LABEL maintainer="chris@meggsimum.de"
 
 
 # install git to resolve git based dependency in package.json
-RUN apk add --no-cache git
+# install zip to pack *.properties files for ImageMosaic GS Store
+RUN apk add --no-cache git zip
 RUN git --version
+RUN zip --version
 
 COPY  /package.json /opt/package.json
 
