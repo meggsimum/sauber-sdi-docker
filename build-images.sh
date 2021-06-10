@@ -27,6 +27,12 @@ docker tag sauberprojekt/raster_download:$MASTER_TAG sauberprojekt/raster_downlo
 docker build --rm -f "json_download/Dockerfile" -t sauberprojekt/json_download:$MASTER_TAG "json_download"
 docker tag sauberprojekt/json_download:$MASTER_TAG sauberprojekt/json_download:$DATE_TAG
 
+docker build --rm -f "lanuv_download/Dockerfile" -t sauberprojekt/lanuv_download:$MASTER_TAG "lanuv_download"
+docker tag sauberprojekt/lanuv_download:$MASTER_TAG sauberprojekt/lanuv_download:$DATE_TAG
+
+docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$MASTER_TAG "lubw_Download"
+docker tag sauberprojekt/lubw_download:$MASTER_TAG sauberprojekt/lubw_download:$DATE_TAG
+
 docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$MASTER_TAG "test_messenger"
 docker tag sauberprojekt/test_messenger:$MASTER_TAG sauberprojekt/test_messenger:$DATE_TAG
 

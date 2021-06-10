@@ -6,10 +6,11 @@ networks:
 
 volumes:
     db_data:
-    lubw_data:
     geoserver_data:
     raster_data:
     json_data:
+    lanuv_data:
+    lubw_data:
     um_data:
     um_logs:
     um_licence:
@@ -254,6 +255,42 @@ services:
             - json_data:/json_data/:Z
         tty:
             true
+
+    lanuv_downloader:
+        image: "sauberprojekt/lanuv_download:${TAG:-master}"
+        networks:
+            - sauber-network
+        secrets:
+            - app_password
+        environment:
+            - APP_PASSWORD_FILE=/run/secrets/app_password
+        depends_on:
+            - um_server
+        volumes:
+            - lanuv_data:/lanuv_data
+        tty:
+            true
+
+    # lubw_downloader:
+    #     image: "sauberprojekt/lubw_download:${TAG:-master}"
+    #     networks:
+    #         - sauber-network
+    #     secrets:
+    #         - app_password
+    #         - lubw_user
+    #         - lubw_password
+    #         - lubw_server
+    #     environment:
+    #         - APP_PASSWORD_FILE=/run/secrets/app_password
+    #         - LUBW_PASSWORD_FILE=/run/secrets/lubw_password
+    #         - LUBW_USER_FILE=/run/secrets/lubw_user
+    #         - LUBW_SERVER_FILE=/run/secrets/lubw_server
+    #     depends_on:
+    #         - um_server
+    #     volumes:
+    #         - lubw_data:/data/xml_data
+    #     tty:
+    #         true
 
     geoserver_raster_publisher:
       image: "sauberprojekt/geoserver_raster_publisher:${TAG:-master}"
