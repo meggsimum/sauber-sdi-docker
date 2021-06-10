@@ -112,7 +112,7 @@ public class RasterDownloader implements nEventListener {
 			InputStream fis = new FileInputStream(secretFileHhiRestUsrCtn );
 			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
 		} else if (secretFileHhiRestUsrLoc .exists()) {
-			System.out.println("Using local backup secret at " + secretFileHhiRestUsrLoc .getAbsolutePath());
+			System.out.println("Using local backup secret at " + secretFileHhiRestUsrLoc.getAbsolutePath());
 			InputStream fis = new FileInputStream(secretFileHhiRestUsrLoc );
 			this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
 		} else {
@@ -266,10 +266,10 @@ public class RasterDownloader implements nEventListener {
 
 			URL requestUrl = new URL(request);
 			InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
-			String requestIP = requestAddress.getHostAddress();			
+			String requestIP = requestAddress.getHostAddress();
 			
 			if (requestIP.equals(hhiIP)) {
-				try {	
+				try {
 					this.downloadRaster(request, fileName);
 				} catch (IOException | InterruptedException e) {
 					System.out.println("Could not download&insert raster file");
@@ -355,14 +355,14 @@ public class RasterDownloader implements nEventListener {
 
 			File imgFile = new File(filePathStr);
 
-			Boolean rasterExists = false;
+			Boolean rasterExists = true;
 
 			if (!imgFile.isFile()) {
 				imgFile.getParentFile().mkdirs();
 				imgFile.createNewFile();
-				rasterExists = true;
+				rasterExists = false;
 			}
-			
+
 			FileUtils.copyInputStreamToFile(is, imgFile);
 			String absPath = imgFile.getAbsolutePath();
 			System.out.println("Raster saved at " + absPath);
@@ -414,7 +414,7 @@ public class RasterDownloader implements nEventListener {
 		createSchema.close();
 		ProcessBuilder pb =
 				new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -d -R -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-		
+
 		Process p = pb.inheritIO().start();
 		p.waitFor();
 		
@@ -425,7 +425,7 @@ public class RasterDownloader implements nEventListener {
 			System.exit(1);
 		}
 
-		if (rasterExists) {
+		if (!rasterExists) {
 			try {
 				insertMetadata(absPath, conn);
 			} catch (SQLException e) {
@@ -470,9 +470,9 @@ public class RasterDownloader implements nEventListener {
 				}
 	    	}
 	    }
-	    return propPath;
+	return propPath;
 	}
-       	
+
 	private void insertMetadata(String filePathStr, Connection conn) throws SQLException, IOException {
 
 		//gather info to fill statement for raster metadata table
