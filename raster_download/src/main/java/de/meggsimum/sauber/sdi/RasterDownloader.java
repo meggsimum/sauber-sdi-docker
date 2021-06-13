@@ -370,7 +370,7 @@ public class RasterDownloader implements nEventListener {
 			is.close();
 
 			try {
-				insertRaster(fileName,absPath,rasterExists);  // insert raster into database via raster2pgsql
+				insertRaster(fileName, absPath, rasterExists);  // insert raster into database via raster2pgsql
 			} catch (IOException e) {
 				System.out.println("Error inserting raster into DB");
 				e.printStackTrace();
@@ -392,7 +392,7 @@ public class RasterDownloader implements nEventListener {
 		return;
 	}
 
-	private void insertRaster(String fileName, String absPath, Boolean rasterExists) throws SQLException,IOException, InterruptedException {
+	private void insertRaster(String fileName, String absPath, Boolean rasterExists) throws SQLException, IOException, InterruptedException {
 
 		//declutter process builder args
 		String schemaName = evtRegion.toLowerCase().replaceAll("\\s","") +"_"+ evtPollutant.toLowerCase().replaceAll("\\s","");
@@ -445,7 +445,7 @@ public class RasterDownloader implements nEventListener {
 	 */
 	public static String getPropertiesPath(String rasterDir) throws IOException {
 
-		File propsRootDir = new File("/opt/geoserver_data/coverages");  // root dir of geoserver imgMosaic. Must be mapped as volume by container!
+		File propsRootDir = new File("/opt/geoserver_data/coverages/");  // root dir of geoserver imgMosaic. Must be mapped as volume by container!
 		File rasterFile = new File(rasterDir); // extract path from downloaded raster file
 		String rasterRootDir = rasterFile.getAbsoluteFile().getParent();
 		String propPath = new String(); // Path to specific mosaic to be found 
@@ -454,7 +454,7 @@ public class RasterDownloader implements nEventListener {
 			rasterRootDir = rasterDir.substring(0, rasterDir.length() - 1); // Strip trailing slash from download path 
 		}
 			
-	    Iterator<File> files = FileUtils.iterateFilesAndDirs(propsRootDir,new WildcardFileFilter("indexer.properties"),TrueFileFilter.INSTANCE);
+	    Iterator<File> files = FileUtils.iterateFilesAndDirs(propsRootDir, new WildcardFileFilter("indexer.properties"),TrueFileFilter.INSTANCE);
 
 	    while (files.hasNext()) {
 	    	
