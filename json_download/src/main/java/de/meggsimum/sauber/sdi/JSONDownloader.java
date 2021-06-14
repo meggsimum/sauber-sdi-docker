@@ -356,9 +356,9 @@ public class JSONDownloader implements nEventListener {
 		String url = "jdbc:postgresql://db:5432/sauber_data";
 	
 		Properties props = new Properties();
-		props.setProperty("user",dbUser);
-		props.setProperty("password",dbUserPw);
-		props.setProperty("ssl","false");
+		props.setProperty("user", dbUser);
+		props.setProperty("password", dbUserPw);
+		props.setProperty("ssl", "false");
 		Connection conn = DriverManager.getConnection(url, props);
 		conn.setAutoCommit(false);
 		
