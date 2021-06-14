@@ -34,7 +34,8 @@ fi
 
 docker stack deploy -c docker-stack.yml sauber-stack
 
-CHANNELS=("HeartbeatChannel raster_data station_data") ## Add additional channels to be created
+echo 'Waiting 60 seconds for stack to deploy...'
+sleep 60
 
 until [ ! -z "$UM_SERVER_ID" ]; do
     UM_SERVER_ID=$(docker ps | grep um_server | cut -c1-5) ## Get all running containers. Search for UM Server container name. Get UM-Server ID by first 5 digits of response.
@@ -44,6 +45,8 @@ until [ ! -z "$UM_SERVER_ID" ]; do
     exit # Exit if UM Server not found in given amount of tries
     echo 'Searching for UM Container. Attempt' $cnt;
 done;
+
+CHANNELS=("HeartbeatChannel raster_data station_data") ## Add additional channels to be created
 
 for channel in $CHANNELS; do
     echo 'Creating channel' $channel
