@@ -10,12 +10,8 @@ import dockerSecret from './js-utils/docker-secrets.js';
 const verbose = process.env.GSINIT_VERBOSE;
 
 const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://geoserver:8080/geoserver/rest/';
-const geoserverDefaultUser = process.env.GSINIT_GS_REST_DEFAULT_USER || 'admin';
-const geoserverDefaultPw = process.env.GSINIT_GS_REST_DEFAULT_PW || 'geoserver';
-
-verboseLogging('GeoServer REST URL: ', geoserverUrl);
-verboseLogging('GeoServer Default REST User:', geoserverDefaultUser);
-verboseLogging('GeoServer Default REST PW:  ', geoserverDefaultPw);
+const newGeoserverUser = dockerSecret.read('geoserver_user');
+const newGeoserverPw = dockerSecret.read('geoserver_password');
 
 const workspacesList = process.env.GSINIT_WS || 'station_data,image_mosaics';
 const stationWorkspace = process.env.GSINIT_STATION_WS || 'station_data';
@@ -27,12 +23,10 @@ const proxyBaseUrl = process.env.GSINIT_PROXY_BASE_URL;
 const pgPassword = dockerSecret.read('app_password') || process.env.GSINIT_PG_PW;
 const pgSchema = process.env.GSINIT_PG_SCHEMA || 'station_data';
 const pgDb = process.env.GSINIT_PG_DB || 'sauber_data';
-const newGeoserverUser = dockerSecret.read('geoserver_user');
-const newGeoserverPw = dockerSecret.read('geoserver_password');
-const role = 'ADMIN';
 
 verboseLogging('-----------------------------------------------');
 
+verboseLogging('GS REST URL:    ', geoserverUrl);
 verboseLogging('Workspaces:     ', workspacesList);
 verboseLogging('Station WS:     ', stationWorkspace);
 verboseLogging('Station DS:     ', stationDataStore);
@@ -52,8 +46,6 @@ verboseLogging('PG Database:    ', pgDb);
  */
 async function initGeoserver() {
   framedBigLogging('Start initalizing SAUBER GeoServer...');
-
-  await adaptSecurity();
 
   await createWorkspaces();
 
@@ -78,35 +70,6 @@ async function initGeoserver() {
     console.info(`Set proxy base url to "${proxyBaseUrl}"`);
   } else {
     console.info('Setting proxy base url failed.');
-  }
-}
-
-
-/**
- * Adapts security settings for GeoServer
- */
-async function adaptSecurity() {
-  const user = newGeoserverUser;
-  const userPw = newGeoserverPw;
-
-  if (!user || !userPw || user === '' || userPw === '') {
-    exitWithErrMsg('No valid user or user password given - EXIT.');
-  }
-
-  const userCreated =  await grc.security.createUser(user, userPw);
-  if (userCreated) {
-    console.info('Successfully created user', user);
-  }
-
-  const roleAssigend = await grc.security.associateUserRole(user, role);
-  if (roleAssigend) {
-    console.info(`Successfully added role ${role} to user ${user}`);
-  }
-
-  // disable default admin user
-  const adminDisabled = await grc.security.updateUser(geoserverDefaultUser, geoserverDefaultPw, false);
-  if (adminDisabled) {
-    console.info('Successfully disabled default "admin" user');
   }
 }
 
@@ -146,20 +109,20 @@ async function createPostgisDatastore() {
 /**
  * Creates the station layer.
  */
-async function createStationsLayer() {
-  framedMediumLogging('Creating stations layer...');
-
-  const workspace = 'station_data';
-  const dataStore = 'station_data';
-  const stationLayerName = 'fv_stations';
-  const srs = 'EPSG:3035';
-
-  const success = await grc.layers.publishFeatureType(workspace, dataStore, stationLayerName, stationLayerName, stationLayerName, srs);
-
-  if (success) {
-    console.info('Successfully created stations layer ', stationLayerName);
-  }
-}
+// async function createStationsLayer() {
+//   framedMediumLogging('Creating stations layer...');
+//
+//   const workspace = 'station_data';
+//   const dataStore = 'station_data';
+//   const stationLayerName = 'fv_stations';
+//   const srs = 'EPSG:3035';
+//
+//   const success = await grc.layers.publishFeatureType(workspace, dataStore, stationLayerName, stationLayerName, stationLayerName, srs);
+//
+//   if (success) {
+//     console.info('Successfully created stations layer ', stationLayerName);
+//   }
+// }
 
 /**
  * Helper to perform asynchronous forEach.
@@ -184,6 +147,11 @@ function exitWithErrMsg(msg) {
   process.exit(1);
 }
 
+/**
+ * logging util
+ * @param {*} msg Message to log in verbose mode
+ */
+// eslint-disable-next-line no-unused-vars
 function verboseLogging(msg) {
   if (verbose) {
     console.log.apply(console, arguments);
@@ -191,10 +159,9 @@ function verboseLogging(msg) {
 }
 
 // check if we can connect to GeoServer REST API
-const grc = new GeoServerRestClient(geoserverUrl, geoserverDefaultUser, geoserverDefaultPw);
+const grc = new GeoServerRestClient(geoserverUrl, newGeoserverUser, newGeoserverPw);
 grc.exists().then(gsExists => {
   if (gsExists === true) {
-    // start publishing process
     initGeoserver();
   } else {
     exitWithErrMsg('Could not connect to GeoServer REST API - ABORT!');
