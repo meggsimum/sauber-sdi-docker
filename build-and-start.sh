@@ -35,6 +35,8 @@ fi
 docker stack deploy -c docker-stack.yml sauber-stack
 
 echo 'Waiting 60 seconds for stack to deploy...'
+# This avoids the following scripts binding to an existing UM Server instance
+# that is shut down shortly after due to re-deployment.
 sleep 60
 
 until [ ! -z "$UM_SERVER_ID" ]; do
