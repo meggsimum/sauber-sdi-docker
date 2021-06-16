@@ -40,9 +40,9 @@ verboseLogging('PG Database:    ', pgDb);
 /**
  * Main process:
  *  - Create workspaces
- *  - Change user + password
  *  - Set proxy base url
  *  - Create store and layer for stations
+ *  - Create layer for all stations: station_data:fv_stations
  */
 async function initGeoserver() {
   framedBigLogging('Start initalizing SAUBER GeoServer...');
@@ -52,6 +52,8 @@ async function initGeoserver() {
   await setProxyBaseUrl();
 
   await createPostgisDatastore();
+
+  await createStationsLayer();
 
   framedBigLogging('... DONE initalizing SAUBER GeoServer');
 }
@@ -79,7 +81,7 @@ async function initGeoserver() {
 async function createWorkspaces() {
   framedMediumLogging('Creating workspaces...');
 
-  console.info('Configuring the workspaces ', workspacesList);
+  console.info('Configuring the workspaces', workspacesList);
 
   const workspaces = workspacesList.split(',');
   await asyncForEach(workspaces, async ws => {
@@ -107,22 +109,39 @@ async function createPostgisDatastore() {
 }
 
 /**
- * Creates the station layer.
+ * Creates the stations layer.
  */
-// async function createStationsLayer() {
-//   framedMediumLogging('Creating stations layer...');
-//
-//   const workspace = 'station_data';
-//   const dataStore = 'station_data';
-//   const stationLayerName = 'fv_stations';
-//   const srs = 'EPSG:3035';
-//
-//   const success = await grc.layers.publishFeatureType(workspace, dataStore, stationLayerName, stationLayerName, stationLayerName, srs);
-//
-//   if (success) {
-//     console.info('Successfully created stations layer ', stationLayerName);
-//   }
-// }
+ async function createStationsLayer() {
+  framedMediumLogging('Creating stations layer...');
+
+  const workspace = 'station_data';
+  const dataStore = 'station_data';
+  const stationLayerName = 'fv_stations';
+  const nativeName = stationLayerName;
+  const stationLayerTitle = 'All Stations';
+  const abstract = 'All stations in the SDI.';
+  const srs = 'EPSG:3035';
+  // BBOX of the SRS
+  const nativeBoundingBox = {
+    minx: 1896628.6179337814,
+    maxx: 7104179.202731105,
+    miny: 1098068.900387804,
+    maxy: 6829874.453973565
+  };
+
+  verboseLogging(`WS: ${workspace}, DS: ${dataStore}, NATIVE: ${nativeName}, NAME: ${stationLayerName}, TITLE: ${stationLayerTitle}`)
+
+  const success = await grc.layers.publishFeatureType(
+    workspace, dataStore, nativeName, stationLayerName, stationLayerTitle, srs,
+    true, abstract, nativeBoundingBox
+  );
+
+  if (success) {
+    console.info('Successfully created stations layer', stationLayerName);
+  } else {
+    console.error('Failed creating stations layer', stationLayerName);
+  }
+}
 
 /**
  * Helper to perform asynchronous forEach.
