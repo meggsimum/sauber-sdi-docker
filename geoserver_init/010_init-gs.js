@@ -69,7 +69,7 @@ async function initGeoserver() {
   if (proxyBaseUrlChanged) {
     console.info(`Set proxy base url to "${proxyBaseUrl}"`);
   } else {
-    console.info('Setting proxy base url failed.');
+    console.error('Failed setting proxy base url', proxyBaseUrl);
   }
 }
 
@@ -86,6 +86,9 @@ async function createWorkspaces() {
     const wsCreated = await grc.workspaces.create(ws);
     if (wsCreated) {
       console.info('Successfully created workspace', wsCreated);
+    } else {
+      console.error('Failed creating workspace (maybe already existing ',
+          ws, wsCreated);
     }
   });
 }
@@ -96,13 +99,16 @@ async function createWorkspaces() {
 async function createPostgisDatastore() {
   framedMediumLogging('Creating PostGIS data store...');
 
-  const success = await grc.datastores.createPostgisStore(
+  const created = await grc.datastores.createPostgisStore(
     stationWorkspace, stationDataStore, pgHost, pgPort, pgUser, pgPassword,
     pgSchema, pgDb
   );
 
-  if (success) {
-    console.info('Successfully created PostGIS store');
+  if (created) {
+    console.info('Successfully created PostGIS store', stationDataStore);
+  } else {
+    console.error('Failed creating PostGIS store (maybe already existing ',
+        stationDataStore, created);
   }
 }
 
