@@ -69,7 +69,7 @@ async function initGeoserver() {
   if (proxyBaseUrlChanged) {
     console.info(`Set proxy base url to "${proxyBaseUrl}"`);
   } else {
-    console.error('Failed setting proxy base url', proxyBaseUrl);
+    console.error('Failed setting proxy base url: ', proxyBaseUrl);
   }
 }
 
@@ -87,7 +87,7 @@ async function createWorkspaces() {
     if (wsCreated) {
       console.info('Successfully created workspace', wsCreated);
     } else {
-      console.error('Failed creating workspace (maybe already existing ',
+      console.error('Failed creating workspace (maybe already existing)  ',
           ws, wsCreated);
     }
   });
@@ -107,7 +107,7 @@ async function createPostgisDatastore() {
   if (created) {
     console.info('Successfully created PostGIS store', stationDataStore);
   } else {
-    console.error('Failed creating PostGIS store (maybe already existing ',
+    console.error('Failed creating PostGIS store (maybe already existing) ',
         stationDataStore, created);
   }
 }
