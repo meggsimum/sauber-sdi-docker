@@ -1,0 +1,3 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+30 * * * * /bin/bash /scripts/dl_lubw.sh >> log.txt > 2>&1
