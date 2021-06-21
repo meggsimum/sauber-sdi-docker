@@ -12,12 +12,9 @@ Prerequisites: [Docker](https://www.docker.com/) and [Docker Stack](https://docs
   - Run
 
     ```
-    build-and-start.sh 
+    docker stack deploy -c docker-stack.yml <stack-name>
     ```
-    Which builds all relevant images on the local machine and deploys the SAUBER SDI as *docker stack*. 
-
-    **Flags**: 
-    
-    `SKIPBUILD=1`: Skip the *docker build* process and pull the images directly from the projects DockerHub repository. Default: 0. 
-
-    `export TAG=<tagname> build-and-start.sh`: Use specific *docker image tag* for images. This allows for local versioning of images and helps ensuring which tag is being used by the *docker stack*. Avoid using *latest*-tag for images. Default: "master".
+    e.g.
+    ```
+    docker stack deploy -c docker-stack.yml sauber-stack-local
+    ```
