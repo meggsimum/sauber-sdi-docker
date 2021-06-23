@@ -16,6 +16,17 @@ BEGIN
 	RETURN 1;
 	END IF;
 
+
+	/* 
+	Takes station code and pollutant name as text input.
+	On project convention, these are sent in uppercase.
+	As  casing should be avoided in PostgreSQL, use lower case input for object names.
+
+	On success, returns name of the created view as text. 
+
+	On failuty, returns 1, SQL state. 
+	*/ 
+
 	EXECUTE FORMAT('
 			CREATE OR REPLACE VIEW station_data.%1$s_measurement_%2$s
 			AS WITH sel AS (
