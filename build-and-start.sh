@@ -13,10 +13,10 @@ DATE=`date +"%Y%m%d"`
 SALT="1"
 # version a la 20200701_1
 DATE_TAG=$DATE"_"$SALT
-# the tag for the latest git stage in master branch
-MASTER_TAG="master"
+# tag for the docker images (default "master" for latest stage in master branch)
+TAG="${TAG:-master}"
 
-echo "USING THE FOLLOWING TAG FOR IMAGE BUILD "$MASTER_TAG
+echo "USING THE FOLLOWING TAG FOR IMAGE BUILD "$TAG
 echo "USING THE FOLLOWING TAG FOR IMAGE BUILD "$DATE_TAG
 
 docker network create sauber-network
@@ -26,7 +26,7 @@ then
 
   echo "Building Docker Images ..."
 
-  /bin/sh ./build-images.sh
+  TAG="$TAG" /bin/sh ./build-images.sh
 
   echo "... DONE Building Docker Images"
 
