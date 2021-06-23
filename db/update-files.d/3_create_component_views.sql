@@ -15,7 +15,17 @@ BEGIN
     RAISE INFO 'Error: Empty input variable';
  	RETURN 1;
   END IF;
-      
+
+	/* 
+	Takes station code and pollutant name as text input to create aggregate view.
+	On project convention, these are sent in uppercase.
+	As  casing should be avoided in PostgreSQL, use lower case input for object names.
+
+	On success, returns name of the created view as text. 
+
+	On failuty, returns 1, SQL state. 
+	*/ 
+
   EXECUTE FORMAT('
 	CREATE OR REPLACE VIEW station_data.agg_prediction_%1$s
 	AS SELECT DISTINCT ON (tp.date_time) tp.date_time,
@@ -68,7 +78,17 @@ BEGIN
     RAISE INFO 'Error: Empty input variable';
  	RETURN 1;
   END IF;
-      
+
+	/* 
+	Takes station code and pollutant name as text input to create prediction view.
+	On project convention, these are sent in uppercase.
+	As  casing should be avoided in PostgreSQL, use lower case input for object names.
+
+	On success, returns name of the created view as text. 
+
+	On failuty, returns 1, SQL state. 
+	*/ 
+
   EXECUTE FORMAT('
 			CREATE OR REPLACE VIEW station_data.%1$s_prediction_%2$s
 			AS WITH sel AS (
