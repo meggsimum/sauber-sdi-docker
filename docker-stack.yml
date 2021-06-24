@@ -140,6 +140,8 @@ services:
             - GSINIT_PROXY_BASE_URL=https://sauber-sdi.meggsimum.de/geoserver
         deploy:
             replicas: 1
+            restart_policy:
+                condition: on-failure
         depends_on:
             - geoserver
         command: ["./wait-for.sh", "geoserver:8080", "--", "npm", "start"]
