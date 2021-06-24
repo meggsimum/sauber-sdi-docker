@@ -21,7 +21,7 @@ BEGIN
   Views created in lowercase, replacing dash for underscore for PostgreSQL-friendly object names.
   
   Input: station code, pollutant name (text, text).
-  Return on success: Names of both created views: "station_measurement_polllutant,station_measurement_polllutant"
+  Return on success: Names of both created views: "station_measurement_pollutant,station_prediction_pollutant"
   Return on failure: 1, Log SQL Error, SQL State
   */
 
