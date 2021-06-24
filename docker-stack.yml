@@ -189,19 +189,19 @@ services:
         ports:
             - "9876:9000"
 
-    test_messenger:
-        image: "sauberprojekt/test_messenger:${TAG:-master}"
-        networks:
-            - sauber-network
-#       secrets:
-        environment:
-            - UM_SERVER=um_server:9000
-            - UM_CHANNEL=raster_data
-            - CLASSPATH=/opt/target/classes
-        depends_on:
-            - um_server
-        tty:
-            true
+    # can be commented in for local debugging, no use in production
+    # test_messenger:
+    #     image: "sauberprojekt/test_messenger:${TAG:-master}"
+    #     networks:
+    #         - sauber-network
+    #     environment:
+    #         - UM_SERVER=um_server:9000
+    #         - UM_CHANNEL=raster_data
+    #         - CLASSPATH=/opt/target/classes
+    #     depends_on:
+    #         - um_server
+    #     tty:
+    #         true
 
     raster_downloader:
         image: "sauberprojekt/raster_download:${TAG:-master}"
@@ -328,19 +328,21 @@ services:
           - db
           - geoserver
 
-    um-ol-demo:
-        image: sauberprojekt/um_ol_demo:${TAG:-master}
-        networks:
-            - sauber-network
-        ports:
-            - "9999:80"
+    # can be commented in for local debugging, no use in production
+    # um-ol-demo:
+    #     image: sauberprojekt/um_ol_demo:${TAG:-master}
+    #     networks:
+    #         - sauber-network
+    #     ports:
+    #         - "9999:80"
 
-    um-js-demo:
-        image: sauberprojekt/um_js_demo:${TAG:-master}
-        networks:
-            - sauber-network
-        ports:
-            - "9998:80"
+    # can be commented in for local debugging, no use in production
+    # um-js-demo:
+    #     image: sauberprojekt/um_js_demo:${TAG:-master}
+    #     networks:
+    #         - sauber-network
+    #     ports:
+    #         - "9998:80"
 
     wms-time-viewer:
         image: sauberprojekt/wms-time-viewer:${TAG:-master}
@@ -365,9 +367,10 @@ services:
             - um-js-demo
             - wms-time-viewer
 
-    um-publisher:
-        image: um_publisher:latest
-        networks:
-            - sauber-network
-        ports:
-            - "9990:80"
+    # can be commented in for local debugging, no use in production
+    # um-publisher:
+    #     image: um_publisher:latest
+    #     networks:
+    #         - sauber-network
+    #     ports:
+    #         - "9990:80"
