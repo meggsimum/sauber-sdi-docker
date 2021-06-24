@@ -446,10 +446,16 @@ public class RasterDownloader implements nEventListener {
 	public static String getPropertiesPath(String rasterDir) throws IOException {
 
 		File propsRootDir = new File("/opt/geoserver_data/coverages/");  // root dir of geoserver imgMosaic. Must be mapped as volume by container!
+		String propPath = new String(); // Path to specific mosaic to be found 
+		
+		if (!propsRootDir.exists()) { 		// if this is the first raster ever received, the GeoServer coverages folder might be uninitiated
+			propPath = "0";
+			return propPath;
+		}
+
 		File rasterFile = new File(rasterDir); // extract path from downloaded raster file
 		String rasterRootDir = rasterFile.getAbsoluteFile().getParent();
-		String propPath = new String(); // Path to specific mosaic to be found 
-
+		
 		if (rasterRootDir.endsWith("/")) {
 			rasterRootDir = rasterDir.substring(0, rasterDir.length() - 1); // Strip trailing slash from download path 
 		}
