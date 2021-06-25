@@ -41,4 +41,5 @@ END;
 $function$
 ;
 
-ALTER FUNCTION 
+ALTER FUNCTION station_data.create_data_views(text,text) OWNER TO sauber_manager;
+GRANT ALL ON FUNCTION station_data.create_data_views(text,text) TO postgres;
