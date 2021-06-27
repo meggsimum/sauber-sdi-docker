@@ -27,8 +27,6 @@ GRANT SELECT,INSERT ON station_data.tab_component_metainfo TO app;
 
 DROP MATERIALIZED VIEW IF EXISTS station_data.fv_station_metadata;
 
-ALTER TABLE station_data.lut_station ALTER COLUMN region TYPE text USING region::text;
-
 CREATE MATERIALIZED VIEW station_data.fv_station_metadata
 AS WITH sel AS (
          SELECT tp_1.fk_component AS comp,
