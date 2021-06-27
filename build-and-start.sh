@@ -32,6 +32,16 @@ then
 
 fi
 
+# create mount directory for GeoServer
+echo
+echo "Creating mount directory for GeoServer ... "
+mkdir \
+  --parents \
+  geoserver_mnt/geoserver_data \
+  geoserver_mnt/raster_data
+echo "... DONE Creating mount directory for GeoServer"
+echo
+
 docker stack deploy -c docker-stack.yml sauber-stack
 
 echo 'Waiting 60 seconds for stack to deploy...'
