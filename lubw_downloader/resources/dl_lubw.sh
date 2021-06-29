@@ -66,13 +66,13 @@ else
 	exit 1
 fi
 
-
-# XML is not well formed for direct insert to PG. Need to replace newline with empty string.
+# PostgreSQL cannot handle line breaks in XML. Need to replace newline with empty string.
 tr '\n' ' ' < $OUTDIR/$OUTFILE > $PARSED_OUTDIR/$PARSED_OUTFILE
 sleep 1
 
-#Upload raw input into database. Observe encoding of raw xml. Trigger parser on raw input table.
+# Upload raw input into database. Observe encoding of raw xml.
 PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "\copy station_data.input_lubw FROM $PARSED_OUTDIR/$PARSED_OUTFILE encoding 'LATIN1';"
+# Trigger parser on raw input table.
 PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "SELECT station_data.lubw_parse();"
 
 exit
