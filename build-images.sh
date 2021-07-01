@@ -30,7 +30,7 @@ docker tag sauberprojekt/json_download:$TAG sauberprojekt/json_download:$DATE_TA
 docker build --rm -f "lanuv_download/Dockerfile" -t sauberprojekt/lanuv_download:$TAG "lanuv_download"
 docker tag sauberprojekt/lanuv_download:$TAG sauberprojekt/lanuv_download:$DATE_TAG
 
-docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$TAG "lubw_Download"
+docker build --rm -f "lubw_download/Dockerfile" -t sauberprojekt/lubw_download:$TAG "lubw_download"
 docker tag sauberprojekt/lubw_download:$TAG sauberprojekt/lubw_download:$DATE_TAG
 
 docker build --rm -f "test_messenger/Dockerfile" -t sauberprojekt/test_messenger:$TAG "test_messenger"
