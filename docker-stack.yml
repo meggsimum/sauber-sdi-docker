@@ -64,7 +64,7 @@ secrets:
 services:
 
     db:
-        image: "sauberprojekt/db:${TAG:-master}"
+        image: "db_test"
         networks:
             - sauber-network
         volumes:

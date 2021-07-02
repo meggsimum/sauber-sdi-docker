@@ -1,0 +1,3 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+0 4 * * * /bin/bash /scripts/dl_lanuv.sh >> /log.txt 2>&1
