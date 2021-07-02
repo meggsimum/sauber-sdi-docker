@@ -1,0 +1,12 @@
+SPI=org.geotools.data.postgis.PostgisNGDataStoreFactory
+host=db
+port=5432
+database=sauber_data
+schema=image_mosaics
+user=sauber_manager
+passwd=__DATABASE_PASSWORD__
+Loose\ bbox=true
+Estimated\ extends=false
+validate\ connections=true
+Connection\ timeout=10
+preparedStatements=true

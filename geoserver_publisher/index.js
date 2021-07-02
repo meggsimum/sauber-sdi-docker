@@ -26,6 +26,8 @@ const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://geoserver:8080/geo
 const geoserverUser = dockerSecret.read('geoserver_user') || process.env.GSPUB_GS_REST_USER;
 const geoserverPw = dockerSecret.read('geoserver_password') || process.env.GSPUB_GS_REST_PW;
 
+const pgPassword = dockerSecret.read('sauber_manager_password') || process.env.GSPUB_PG_PW;
+
 verboseLogging('GeoServer REST URL: ', geoserverUrl);
 verboseLogging('GeoServer REST User:', geoserverUser);
 verboseLogging('GeoServer REST PW:  ', geoserverPw);
@@ -41,18 +43,23 @@ async function publishRasters() {
 
   // Query all unpublished rasters from DB
   const unpublishedRasters = await getUnpublishedRasters();
+
   // exit if raster metadata could not be loaded
-  if (!unpublishedRasters) {
+  if (!unpublishedRasters || Array.isArray(unpublishedRasters) && unpublishedRasters.length === 0) {
     framedMediumLogging('Could not get raster metadata - ABORT!');
     process.exit(1);
   }
 
-  framedMediumLogging('Checking CoverageStores for existance');
+  framedMediumLogging('Create CoverageStores if not existing');
 
-  // check if given CoverageStores exists and blacklist them if not
+  // check if given CoverageStores exists and create them if not
   await asyncForEach(unpublishedRasters, checkIfCoverageStoresExist);
 
-  framedMediumLogging('Publish rasters')
+  framedMediumLogging('Create time-enabled WMS layers if not existing');
+
+  await asyncForEach(unpublishedRasters, createRasterTimeLayers);
+
+  framedMediumLogging('Publish rasters');
 
   await asyncForEach(unpublishedRasters, async (rasterMetaInf) => {
     verboseLogging('Publish raster', rasterMetaInf.image_path);
@@ -66,14 +73,13 @@ async function publishRasters() {
       verboseLogging('-----------------------------------------------------\n');
     });
   });
-
 }
 
 /**
  * Checks if GeoServer has the CoverageStore given in the raster meta info.
  * If not it is created in GeoServer by its REST-API.
  *
- * @param {Object} rasterMetaInf
+ * @param {Object} rasterMetaInf Raster Metadata object from DB
  */
 async function checkIfCoverageStoresExist(rasterMetaInf) {
   const ws = rasterMetaInf.workspace;
@@ -86,13 +92,19 @@ async function checkIfCoverageStoresExist(rasterMetaInf) {
   if (!covStoreObj) {
     console.info('CoverageStore', covStore, 'does not exist. Try to create it ...');
 
+    ////////////////////////////////
+    ///// indexer.properties ///////
+    ////////////////////////////////
+
+    verboseLogging('... extending indexer file');
+
     const indexerFile = process.cwd() + '/gs-img-mosaic-tpl/indexer.properties.tpl';
     const indexerFileCopy = process.cwd() + '/gs-img-mosaic-tpl/indexer.properties';
     // copy indexer template so we can modify
     fs.copyFileSync(indexerFile, indexerFileCopy);
     console.info(`${indexerFile} was copied to ${indexerFileCopy}`);
 
-    // matches the filename of the aboslute file path
+    // matches the filename of the absolute file path
     // /opt/raster_data/foo.tiff => foo.tiff
     const regex = /\/[^/]*?\.\S*/gm;
     const rasterFile = rasterMetaInf.image_path;
@@ -102,6 +114,23 @@ async function checkIfCoverageStoresExist(rasterMetaInf) {
     // seth path to rasters in indexer.properties
     const indexingDirText = '\nIndexingDirectories=' + mosaicPath;
     fs.appendFileSync(indexerFileCopy, indexingDirText);
+    verboseLogging('... DONE extending indexer file');
+
+    ////////////////////////////////
+    ///// datastore.properties /////
+    ////////////////////////////////
+
+    const dataStoreTemplateFile = process.cwd() + '/gs-img-mosaic-tpl/datastore.properties.tpl';
+    const dataStoreFile = process.cwd() + '/gs-img-mosaic-tpl/datastore.properties';
+
+    verboseLogging('... replacing dataStore file');
+    const readData = fs.readFileSync(dataStoreTemplateFile, 'utf8');
+    verboseLogging({readData})
+
+    const adaptedContent = readData.replace(/__DATABASE_PASSWORD__/g, pgPassword);
+    verboseLogging({adaptedContent})
+    fs.writeFileSync(dataStoreFile, adaptedContent);
+    verboseLogging('... DONE Replacing datastore file');
 
     // zip image mosaic properties config files
     const fileToZip = [
@@ -111,13 +140,45 @@ async function checkIfCoverageStoresExist(rasterMetaInf) {
     ];
     const zipPath = '/tmp/init.zip';
     const zipOut = await execShellCommand('zip -j ' + zipPath + ' ' + fileToZip.join(' '));
-    console.log(zipOut);
-
-    // TODO ensure the zip is available in GeoServer container
 
     await grc.datastores.createImageMosaicStore(ws, covStore, zipPath);
 
     console.info('... CoverageStore', covStore, 'created');
+  }
+}
+
+/**
+ * Creates a time-enabled layer in the GeoServer for the given raster mosaic if
+ * not existing by GeoServer REST-API.
+ *
+ * @param {Object} rasterMetaInf Raster meta information object from PostgREST
+ */
+async function createRasterTimeLayers (rasterMetaInf) {
+  const ws = rasterMetaInf.workspace;
+  const covStore = rasterMetaInf.coverage_store;
+  const srs = 'EPSG:3035'; // TODO check if defined in DB
+  // per convention coverage store name is layer name and layer title
+  const layerName = covStore;
+  const nativeName = covStore;
+  const layerTitle = covStore;
+
+  verboseLogging(`Checking existence for layer ${ws}:${layerName} in coverage store ${covStore} (native name: ${nativeName})`);
+
+  const layer = await grc.layers.get(covStore);
+
+  if (!layer) {
+    console.info(`Creating layer "${ws}:${layerName}" in store "${covStore}"`);
+    // called like this: publishDbRaster (workspace, coverageStore, nativeName, name, title, srs, enabled)
+    const layerCreated = await grc.layers.publishDbRaster(ws, covStore, nativeName, layerName, layerTitle, srs, true);
+    verboseLogging(`Layer "${ws}:${layerName}" created successfully?`, layerCreated);
+
+  } else {
+    verboseLogging(`Layer "${ws}:${layerName}" already existing.`);
+
+    //TODO check if TIME already set
+    console.info(`Enabling time for layer "${ws}:${layerName}"`);
+    const timeEnabled = await grc.layers.enableTimeCoverage(ws, covStore, layerName, 'DISCRETE_INTERVAL', 3600000, 'MAXIMUM');
+    verboseLogging(`Time dimension  for layer "${ws}:${layerName}" successfully enabled?`, timeEnabled);
   }
 }
 
@@ -191,7 +252,9 @@ async function addRasterToGeoServer(rasterMetaInf) {
 
   if (verbose) {
     const granulesAfter = await grc.imagemosaics.getGranules(ws, covStore, imgMosaic);
-    verboseLogging('Having', granulesAfter.features.length, 'granules after adding', rasterFile);
+    if (granulesAfter && granulesAfter.features) {
+      verboseLogging('Having', granulesAfter.features.length, 'granules after adding', rasterFile);
+    }
   }
 
   console.info('Added granule', rasterFile, 'in GeoServer mosaic', imgMosaic);
