@@ -85,5 +85,12 @@ COPY resources/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 775 /usr/local/bin/docker-entrypoint.sh
 RUN ln -s usr/local/bin/docker-entrypoint.sh
 
+RUN mkdir /var/backup
+COPY resources/conf/pg_backup.config /var/backup/pg_backup.config
+COPY resources/bin/pg_backup.sh /var/backup/pg_backup.sh
+COPY resources/cron/tab.txt /cron/tab.txt
+RUN chmod 775 /var/backup/pg_backup.sh
+RUN crontab /cron/tab.txt
+
 ENV POSTGIS_ENABLE_OUTDB_RASTERS=1 \
     POSTGIS_GDAL_ENABLED_DRIVERS=ENABLE_ALL
