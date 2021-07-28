@@ -18,7 +18,6 @@ verboseLogging('Postgres URL: ', config.postgresHost);
 verboseLogging('Postgres Port:', config.postgresPort);
 verboseLogging('Postgres DB:', config.postgresDb);
 verboseLogging('Postgres User:', config.postgresUser);
-verboseLogging('Postgres PW:  ', config.postgresPw);
 verboseLogging('--------------------------------');
 
 // GEOSERVER SETTINGS
@@ -61,6 +60,10 @@ async function createStationLayers() {
     // all pollutants for later usage
     let allPollutants = [];
 
+    //////
+    // PREDICTION AND MEASUREMENT AS COMBINATION OF A STATION AND A POLLUTANT
+    //////
+
     // go over all stations
     await asyncForEach(stationsFc.features, async station => {
       const attrs = station.properties;
@@ -77,22 +80,35 @@ async function createStationLayers() {
         console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
         // check if target layer exists in GeoServer -> no action needed
-        const layerName = stationCode.toLowerCase() + '_prediction_' + pollutant.toLowerCase();
-        const qLayerName = `${config.geoserverWs}:${layerName}`;
-        const layer = await grc.layers.get(qLayerName);
-        if (layer) {
-          console.info(`GeoServer layer ${qLayerName} exists. Skip.`);
+        const predLayerName = stationCode.toLowerCase() + '_prediction_' + pollutant.toLowerCase();
+        const predQLayerName = `${config.geoserverWs}:${predLayerName}`;
+        const predLayer = await grc.layers.get(predQLayerName);
+        const measLayerName = stationCode.toLowerCase() + '_measurement_' + pollutant.toLowerCase();
+        const measQLayerName = `${config.geoserverWs}:${measLayerName}`;
+        const measLayer = await grc.layers.get(measQLayerName);
+        if (predLayer && measLayer) {
+          console.info(`GeoServer layers ${predQLayerName} and ${measLayerName} exists. Skip.`);
           return;
         }
 
-        const dbView = await createDbView(pollutant, stationCode);
-        if (dbView) {
-          await createGeoServerLayer(dbView, stationCode);
+        const dbViews = await createDbView(pollutant, stationCode);
+        if (dbViews && dbViews.length === 2) {
+          // prediction and measurement data
+          if (!predLayer) {
+            await createGeoServerLayer(dbViews[0], stationCode);
+          }
+          if (!measLayer) {
+            await createGeoServerLayer(dbViews[1], stationCode);
+          }
         } else {
           console.error(`No valid DB returned, skipping GeoServer layer creation for ${stationCode} ${pollutant}`);
         }
       });
     });
+
+    //////
+    // AGGREGATED STATIONS DATA FOR POLLUTANT
+    //////
 
     // unique list of pollutants
     const uniquePollutants = allPollutants.filter((x, i, a) => a.indexOf(x) == i);
@@ -102,13 +118,22 @@ async function createStationLayers() {
       console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
       console.log('Pollutant', pollutant);
 
-      const dbView = await createDbView(pollutant);
-      if (dbView) {
-        await createGeoServerLayer(dbView);
+      // something like agg_prediction_no_am1h
+      const aggLayerName = 'agg_prediction_' + pollutant.toLowerCase();
+      const aggQLayerName = `${config.geoserverWs}:${aggLayerName}`;
+      const aggLayer = await grc.layers.get(aggQLayerName);
+      if (aggLayer) {
+        console.info(`GeoServer aggregated layer ${aggLayerName} exists. Skip.`);
+        return;
+      }
+
+      const dbViews = await createDbView(pollutant);
+      if (dbViews && dbViews.length === 1) {
+        await createGeoServerLayer(dbViews[0]);
       } else {
         console.error(`No valid DB returned, skipping GeoServer aggregated layer creation for ${pollutant}`);
       }
-    })
+    });
 
   } else {
     console.error('Got non HTTP 200 response (HTTP status code', response.status, ') for loading station WFS data');
@@ -126,7 +151,10 @@ async function createStationLayers() {
  */
 async function createDbView(pollutant, stationCode) {
   let sql;
-  let dbViewName = null;
+  let aggDbViewName = null;
+  let predDbViewName = null;
+  let measDbViewName = null;
+  const returnVals = []; // array holding the DB view names to return;
   const Client = pg.Client;
   const client = new Client({
     host: config.postgresHost,
@@ -144,17 +172,28 @@ async function createDbView(pollutant, stationCode) {
       // Combined Station + Pollutant Prediction View as
       console.info(`Creating combined station+pollutant DB view for ${stationCode} ${pollutant}`);
 
-      sql = `SELECT station_data.create_prediction_view('${stationCode}', '${pollutant}');`;
+      // station_data.create_data_views(station_code text, component_name text)
+      sql = `SELECT station_data.create_data_views('${stationCode}', '${pollutant}');`;
       verboseLogging('Executing SQL:', sql);
       const dbResp = await client.query(sql);
 
-      if (dbResp.rows.length > 0 && dbResp.rows[0].create_prediction_view &&
-            dbResp.rows[0].create_prediction_view !== '1') {
-        dbViewName = dbResp.rows[0].create_prediction_view;
+      if (dbResp.rows.length > 0 && dbResp.rows[0].create_data_views &&
+            dbResp.rows[0].create_data_views !== '1') {
 
-        console.info(`Created DB view ${dbViewName} for ${stationCode} ${pollutant}`);
+        // SELECT station_data.create_data_views('MEGG', 'CO2'); =>
+        // megg_measurement_co2, megg_prediction_co2
+        const dbViews = dbResp.rows[0].create_data_views;
+        const dbViewsArr = dbViews.split(', ');
+        predDbViewName = dbViewsArr[1];
+        measDbViewName = dbViewsArr[0];
+
+        console.info(`Created prediction  DB view ${predDbViewName} for ${stationCode} ${pollutant}`);
+        console.info(`Created measurement DB view ${measDbViewName} for ${stationCode} ${pollutant}`);
+
+        returnVals.push(predDbViewName);
+        returnVals.push(measDbViewName);
       } else {
-        console.error(`Creation of DB view for ${stationCode} ${pollutant} failed!`);
+        console.error(`Creation of DB views for ${stationCode} ${pollutant} failed!`);
       }
     } else {
       // Aggregated Station Prediction View as
@@ -166,9 +205,11 @@ async function createDbView(pollutant, stationCode) {
 
       if (dbResp.rows.length > 0 && dbResp.rows[0].create_component_view &&
             dbResp.rows[0].create_prediction_view !== '1') {
-        dbViewName = dbResp.rows[0].create_component_view;
+        aggDbViewName = dbResp.rows[0].create_component_view;
 
-        console.info(`Created aggregated stations for pollutant DB view ${dbViewName} for ${pollutant}`);
+        console.info(`Created aggregated stations for pollutant DB view ${aggDbViewName} for ${pollutant}`);
+
+        returnVals.push(aggDbViewName);
       } else {
         console.error(`Creation of aggregated stations for pollutant DB view for ${pollutant} failed!`);
       }
@@ -181,7 +222,7 @@ async function createDbView(pollutant, stationCode) {
       return;
   }
 
-  return dbViewName;
+  return returnVals;
 }
 
 /**
