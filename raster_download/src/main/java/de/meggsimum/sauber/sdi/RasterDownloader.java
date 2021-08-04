@@ -253,15 +253,15 @@
 				String evtPrefix = ""; //forecast or simulation raster
 	
 				if (category.contains("forecast")) {
-					evtPrefix = "fc";
+					evtPrefix = "fc_";
 				} else if (category.contains("simulation")) {
-					evtPrefix = "sim";
+					evtPrefix = "sim_";
 				} else {
 					System.out.println("Error: Could not determine if forecast / simulation.");
 					System.exit(1);
 				}
 	
-				fileName = evtPrefix + "_" + fileName;
+				fileName = evtPrefix + fileName;
 				URL requestUrl = new URL(request);
 				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
 				String requestIP = requestAddress.getHostAddress();
@@ -346,8 +346,14 @@
 				String contentType = con.getContentType();
 				String fileEnding = RasterDownloader.mappingFormatEnding.get(contentType);
 				System.out.println("Detected " + contentType + " -> using ." + fileEnding + " as ending");
+				
+				// Only add evtPrefix if simulation, not forecast, to prevent changes to existing structure
+				// Remove this to use evtPrefix for all (e.g. new event type)
+				if (evtPrefix.equals("fc_")) {
+					evtPrefix = ""; 					
+				}
 	
-				String coverageName = evtPrefix + "_" + evtRegion.toLowerCase() + "_" + evtPollutant.toLowerCase();
+				String coverageName = evtPrefix + evtRegion.toLowerCase() + "_" + evtPollutant.toLowerCase();
 				String outDir = "/opt/raster_data/"+ coverageName + "/";
 	
 				String filePathStr = outDir + fileName +"."+ fileEnding;
@@ -398,7 +404,7 @@
 		 */
 		private void insertRaster(String fileName, String absPath, Boolean rasterExists, String coverageName, String evtPrefix) throws SQLException, IOException, InterruptedException {
 	
-			String schemaName = evtPrefix + "_" + evtRegion.toLowerCase().replaceAll("\\s","") + "_" + evtPollutant.toLowerCase().replaceAll("\\s","");
+			String schemaName = evtPrefix + evtRegion.toLowerCase().replaceAll("\\s","") + "_" + evtPollutant.toLowerCase().replaceAll("\\s","");
 			String targetTable = schemaName +"."+ fileName;		
 			String url = "jdbc:postgresql://db:5432/sauber_data";
 			Properties props = new Properties();
@@ -417,7 +423,8 @@
 			createSchema.close();
 			ProcessBuilder pb =
 					new ProcessBuilder("/bin/sh", "-c", "raster2pgsql -d -Y -R -I -C -M -t auto "+ absPath +" "+  targetTable + " | PGPASSWORD="+ dbUserPw +" psql -h db -U "+ dbUser +" -d sauber_data -v ON_ERROR_STOP=ON");
-
+					// raster2pgsql Flags: -d: delete if exists (i.e. recreate with newer raster), -Y: use much faster COPY, -R: use out-db Raster, -I: create index, -C: apply constraints, -M: vacuum analyze table -t: tiling auto 
+			
 			Process p = pb.inheritIO().start();
 			p.waitFor();
 			
