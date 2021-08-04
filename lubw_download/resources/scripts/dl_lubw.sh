@@ -17,13 +17,12 @@ file_env() {
 	elif [ "${!fileVar:-}" ]; then
 		val="$(< "${!fileVar}")"
 	fi
-	#echo "$var,$val"
 	export "$var"="$val"
 	unset "$fileVar" 
 }
 
 
-#Read docker secrets. 
+# Read docker secrets. 
 secrets=(
 	APP_PASSWORD
 	LUBW_USER
@@ -35,7 +34,7 @@ for e in "${secrets[@]}"; do
 		file_env "$e"
 done
 
-#Ensure mandatory environment vars are set  
+# Ensure mandatory environment vars are set  
 envs=(
 	APP_PASSWORD
 	LUBW_USER
@@ -50,7 +49,7 @@ for e in "${envs[@]}"; do
 	fi
 done
 
-#Set dirs and name parsed file after ingestion time
+# Set dirs and name parsed file after ingestion time
 OUTDIR=/data/temp
 OUTFILE=lubw_temp.xml
 PARSED_OUTDIR=/data/xml_data
@@ -58,9 +57,9 @@ PARSED_OUTFILE=lubw_$(TZ=Europe/Berlin date +%Y%m%d%H%M).xml
 
 # Download xml file from server. Exit if curl throws failure (http response!=2xx) 
 
-if curl --fail -u $LUBW_USER:$LUBW_PASSWORD ftp://$LUBW_SERVER/Aktuelledaten.xml -o $OUTDIR/$OUTFILE; 
+if curl --fail -u "$LUBW_USER":"$LUBW_PASSWORD" ftp://"$LUBW_SERVER"/Aktuelledaten.xml -o "$OUTDIR/$OUTFILE"; 
 then
-	echo "Data downloaded to $PARSED_OUTFILE ."
+	echo "Data downloaded to "$PARSED_OUTFILE" ."
 else
 	echo "Error: Could not download file."
 	exit 1
@@ -68,12 +67,12 @@ fi
 
 
 # XML is not well formed for direct insert to PG. Need to replace newline with empty string.
-tr '\n' ' ' < $OUTDIR/$OUTFILE > $PARSED_OUTDIR/$PARSED_OUTFILE
+tr '\n' ' ' < "$OUTDIR"/"$OUTFILE" > "$PARSED_OUTDIR"/"$PARSED_OUTFILE"
 sleep 1
 
 # Upload raw input into database. Observe encoding of raw xml.
-PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "\copy station_data.input_lubw FROM $PARSED_OUTDIR/$PARSED_OUTFILE encoding 'LATIN1';"
+PGPASSWORD="$APP_PASSWORD" /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "\copy station_data.input_lubw FROM "$PARSED_OUTDIR"/"$PARSED_OUTFILE" encoding 'LATIN1';"
 # Trigger parser on raw input table.
-PGPASSWORD=$APP_PASSWORD /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "SELECT station_data.lubw_parse();"
+PGPASSWORD="$APP_PASSWORD" /usr/bin/psql -h db -p 5432 -U app -d sauber_data -c "SELECT station_data.lubw_parse();"
 
 exit
