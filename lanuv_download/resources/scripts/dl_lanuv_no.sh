@@ -23,12 +23,12 @@ file_env() {
 	unset "$fileVar" 
 }
 
-#Secrets to be read 
+# Secrets to be read 
 secrets=(
     APP_PASSWORD
 )
 
-#Call function
+# Call function
 for e in "${secrets[@]}"; do
 		file_env "$e"
 done
@@ -38,7 +38,7 @@ envs=(
     APP_PASSWORD
 )
 
-#Ensure mandatory environment vars are set
+# Ensure mandatory environment vars are set
 for e in "${envs[@]}"; do
 	if [ -z ${!e:-} ]; then
 		echo "error: $e is not set"

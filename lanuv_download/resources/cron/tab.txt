@@ -1,4 +1,6 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+# Download hourly data every hour at xx:40
 40 * * * * /bin/bash /scripts/dl_lanuv.sh >> /log.txt 2>&1
+# Download nitrogen-monoxide data (24ish hour cycle) every day at 9am, 9pm
 * 9,21 * * * /bin/bash /scripts/dl_lanuv_no.sh >> /log.txt 2>&1

@@ -62,7 +62,7 @@ fi
 # Get timestamp of the file through parsing, assign to variable needed by database function
 DATA_TS=\'$(head -1 $OUTDIR/$OUTFILE | awk -F "[;]" '{print $(NF-1)"."$NF}' | awk -F "[.]" '{print $3"-"$2"-"$1,$4""}')\'
 
-#Delete first 2 lines to meet postgres req for csv, replace invalid characters
+# Delete first 2 lines to meet postgres req for csv, replace invalid characters
 sed -i -e "1d;2d;" -e "s/\*/-/g" -e "s/<//g" $OUTDIR/$OUTFILE
 sleep 1
 
