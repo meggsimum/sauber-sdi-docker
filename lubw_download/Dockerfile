@@ -1,6 +1,6 @@
 FROM alpine:latest
 # install dependencies
-# del preinstalled buybox sed with limited functionality
+# del preinstalled busybox's sed with limited functionality & install fully fledged sed
 RUN apk update && \
     apk del sed && \
     apk add \
