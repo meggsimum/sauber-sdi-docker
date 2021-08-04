@@ -60,9 +60,9 @@ PARSED_OUTFILE=lubw_$(TZ=Europe/Berlin date +%Y%m%d%H%M).xml
 
 if curl --fail -u $LUBW_USER:$LUBW_PASSWORD ftp://$LUBW_SERVER/Aktuelledaten.xml -o $OUTDIR/$OUTFILE; 
 then
-	echo "Datei $PARSED_OUTFILE heruntergeladen."
+	echo "Data downloaded to $PARSED_OUTFILE ."
 else
-	echo "Error: Datei konnte nicht herunterladen werden."
+	echo "Error: Could not download file."
 	exit 1
 fi
 
