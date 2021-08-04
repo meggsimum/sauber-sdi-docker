@@ -23,6 +23,7 @@ const proxyBaseUrl = process.env.GSINIT_PROXY_BASE_URL;
 const pgPassword = dockerSecret.read('app_password') || process.env.GSINIT_PG_PW;
 const pgSchema = process.env.GSINIT_PG_SCHEMA || 'station_data';
 const pgDb = process.env.GSINIT_PG_DB || 'sauber_data';
+const nameSpaceBaseUrl = process.env.GSINIT_NAMESPACE_BASE_URL || 'https://www.meggsimum.de/namespace/';
 
 verboseLogging('-----------------------------------------------');
 
@@ -36,6 +37,7 @@ verboseLogging('PG User:        ', pgUser);
 verboseLogging('Proxy Base URL: ', proxyBaseUrl);
 verboseLogging('PG Schema:      ', pgSchema);
 verboseLogging('PG Database:    ', pgDb);
+verboseLogging('Namespace URL:  ', nameSpaceBaseUrl);
 
 /**
  * Main process:
@@ -85,7 +87,9 @@ async function createWorkspaces() {
 
   const workspaces = workspacesList.split(',');
   await asyncForEach(workspaces, async ws => {
-    const wsCreated = await grc.workspaces.create(ws);
+    // create namespace URI from workspace name
+    const nameSpaceUri = nameSpaceBaseUrl + ws;
+    const wsCreated = await grc.namespaces.create(ws, nameSpaceUri);
     if (wsCreated) {
       console.info('Successfully created workspace', wsCreated);
     } else {
@@ -101,8 +105,9 @@ async function createWorkspaces() {
 async function createPostgisDatastore() {
   framedMediumLogging('Creating PostGIS data store...');
 
+  const stationNamespace = nameSpaceBaseUrl + stationWorkspace;
   const created = await grc.datastores.createPostgisStore(
-    stationWorkspace, stationDataStore, pgHost, pgPort, pgUser, pgPassword,
+    stationWorkspace, stationNamespace, stationDataStore, pgHost, pgPort, pgUser, pgPassword,
     pgSchema, pgDb
   );
 
