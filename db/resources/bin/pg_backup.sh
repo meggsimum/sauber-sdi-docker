@@ -40,7 +40,7 @@ if [ "$BACKUP_USER" != "" -a "$(id -un)" != "$BACKUP_USER" ] ; then
 fi
 
 ###########################
-### INITIALISE DEFAULTS ###
+### INITIALIZE DEFAULTS ###
 ###########################
 
 if [ ! $HOSTNAME ]; then
