@@ -139,7 +139,7 @@ async function checkIfCoverageStoresExist(rasterMetaInf) {
       'gs-img-mosaic-tpl/timeregex.properties'
     ];
     const zipPath = '/tmp/init.zip';
-    const zipOut = await execShellCommand('zip -j ' + zipPath + ' ' + fileToZip.join(' '));
+    await execShellCommand('zip -j ' + zipPath + ' ' + fileToZip.join(' '));
 
     await grc.datastores.createImageMosaicStore(ws, covStore, zipPath);
 
@@ -333,6 +333,7 @@ function execShellCommand(cmd) {
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
         console.warn(error);
+        reject(error);
       }
       resolve(stdout? stdout : stderr);
     });
@@ -342,6 +343,7 @@ function execShellCommand(cmd) {
 /**
  * Returns the authentication header for PostgREST API.
  */
+// eslint-disable-next-line no-unused-vars
 function getPostgRestAuth() {
   return Buffer.from(postgRestUser + ':' + postgRestPw).toString('base64');
 }
@@ -355,6 +357,7 @@ function exitWithErrMsg(msg) {
   process.exit(1);
 }
 
+// eslint-disable-next-line no-unused-vars
 function verboseLogging(msg) {
   if (verbose) {
     console.log.apply(console, arguments);

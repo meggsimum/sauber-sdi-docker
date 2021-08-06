@@ -274,7 +274,7 @@ async function createGeoServerLayer(dbViewName, stationCode) {
       const nearestMatch = true;
       const rawNearestMatch = false;
       const acceptableInterval = 'PT30M';
-      const timeEnabled = grc.layers.enableTimeFeatureType(
+      grc.layers.enableTimeFeatureType(
         config.geoserverWs, config.geoserverDs, layerName, attribute,
         presentation, resolutionMs, defaultValue, nearestMatch, rawNearestMatch,
         acceptableInterval
