@@ -67,6 +67,12 @@ then
   docker push sauberprojekt/json_download:$TAG
   docker push sauberprojekt/json_download:$DATE_TAG
 
+  docker push sauberprojekt/lanuv_download:$TAG
+  docker push sauberprojekt/lanuv_download:$DATE_TAG
+
+  docker push sauberprojekt/lubw_download:$TAG
+  docker push sauberprojekt/lubw_download:$DATE_TAG
+
   docker push sauberprojekt/test_messenger:$TAG
   docker push sauberprojekt/test_messenger:$DATE_TAG
 
