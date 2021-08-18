@@ -304,6 +304,7 @@ services:
           - postgrest_password
           - geoserver_user
           - geoserver_password
+          - sauber_manager_password
       environment:
           - GSPUB_PG_REST_USER=anon
           - GSPUB_GS_REST_URL=http://geoserver:8080/geoserver/rest/
