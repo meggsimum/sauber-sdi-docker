@@ -144,7 +144,7 @@ services:
                 condition: on-failure
         depends_on:
             - geoserver
-        command: ["./wait-for.sh", "geoserver:8080", "--", "npm", "start"]
+        command: ["./wait-for.sh", "geoserver:8080", "postgrest_raster_publisher:3000", "--", "npm", "start"]
 
     postgrest_raster_publisher:
         image: "sauberprojekt/postgrest:${TAG:-master}"
