@@ -22,7 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set -- "$@" -- "$TIMEOUT" "$QUIET" "$HOST" "$PORT" "$result"
+# Modified version of wait-for.sh in order to check if GeoServer and PostgREST
+# are available in our stack. Only then GeoServer Init script makes sense to
+# run.
+
+set -- "$@" -- "$TIMEOUT" "$QUIET" "$GS_HOST" "$GS_PORT" "$PGR_HOST" "$PGR_PORT" "$result"
 TIMEOUT=15
 QUIET=0
 
@@ -34,7 +38,7 @@ usage() {
   exitcode="$1"
   cat << USAGE >&2
 Usage:
-  $cmdname host:port [-t timeout] [-- command args]
+  $cmdname gshost:gsport pgrhost:pgrport [-t timeout] [-- command args]
   -q | --quiet                        Do not output any status messages
   -t TIMEOUT | --timeout=timeout      Timeout in seconds, zero for no timeout
   -- COMMAND ARGS                     Execute command with args after the test finishes
@@ -43,13 +47,15 @@ USAGE
 }
 
 wait_for() {
- if ! command -v nc >/dev/null; then
-    echoerr 'nc command is missing!'
+ if ! command -v wget >/dev/null; then
+    echoerr 'wget command is missing!'
     exit 1
   fi
 
   while :; do
-    nc -z "$HOST" "$PORT" > /dev/null 2>&1
+    echo "testing" "http://"$GS_HOST:$GS_PORT"/geoserver" and "http://$PGR_HOST:$PGR_PORT/raster_metadata"
+    wget --spider "http://"$GS_HOST:$GS_PORT"/geoserver/web/wicket/resource/org.geoserver.web.GeoServerBasePage/img/logo.png" > /dev/null 2>&1 &&
+    wget --spider "http://$PGR_HOST:$PGR_PORT/raster_metadata?is_published=eq.0" > /dev/null 2>&1
 
     result=$?
     if [ $result -eq 0 ] ; then
@@ -60,7 +66,7 @@ wait_for() {
           set -- "$@" "$result"
         done
 
-        TIMEOUT=$2 QUIET=$3 HOST=$4 PORT=$5 result=$6
+        TIMEOUT=$2 QUIET=$3 GS_HOST=$4 GS_PORT=$5 PGR_HOST=$6 PGR_PORT=$7 result=$8
         shift 6
         exec "$@"
       fi
@@ -78,11 +84,24 @@ wait_for() {
   exit 1
 }
 
+resources_cnt=0;
 while :; do
   case "$1" in
     *:* )
-    HOST=$(printf "%s\n" "$1"| cut -d : -f 1)
-    PORT=$(printf "%s\n" "$1"| cut -d : -f 2)
+    # first arg is the GeoServer host and port
+    if [ "$resources_cnt" -eq 0 ]; then
+      GS_HOST=$(printf "%s\n" "$1"| cut -d : -f 1)
+      GS_PORT=$(printf "%s\n" "$1"| cut -d : -f 2)
+
+      resources_cnt=$((resources_cnt+1))
+    fi
+
+    # first arg is the PostgREST host and port
+    if [ "$resources_cnt" -eq 1 ]; then
+      PGR_HOST=$(printf "%s\n" "$1"| cut -d : -f 1)
+      PGR_PORT=$(printf "%s\n" "$1"| cut -d : -f 2)
+    fi
+
     shift 1
     ;;
     -q | --quiet)
@@ -137,7 +156,7 @@ if ! [ "$TIMEOUT" -ge 0 ] 2>/dev/null; then
   usage 3
 fi
 
-if [ "$HOST" = "" -o "$PORT" = "" ]; then
+if [ "$GS_HOST" = "" -o "$GS_PORT" = "" ]; then
   echoerr "Error: you need to provide a host and port to test."
   usage 2
 fi
