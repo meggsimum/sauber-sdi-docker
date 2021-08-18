@@ -1,5 +1,6 @@
 FROM postgis/postgis:12-3.0-alpine as pgis
 COPY resources/copy_pg_bins.sh /.
+RUN chmod +x /copy_pg_bins.sh
 RUN /copy_pg_bins.sh
 
 FROM maven:3.6.0-jdk-8-slim
