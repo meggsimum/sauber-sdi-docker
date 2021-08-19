@@ -158,7 +158,7 @@ services:
             - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
             - PGRST_USER=authenticator
             - PGRST_DB_POOL=5
-            - PGRST_MAX_ROWS=100
+            - PGRST_MAX_ROWS=1000
             - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
             - PGRST_DB_SERVER=db
             - PGRST_DB_PORT=5432
