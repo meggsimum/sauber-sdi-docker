@@ -12,7 +12,7 @@ import {exec} from 'child_process';
 
 const verbose = process.env.GSPUB_VERBOSE;
 
-const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://postgrest_raster_publisher:3000';
+const postgRestUrl = process.env.GSPUB_PG_REST_URL || 'http://postgrest:3000';
 const postgRestUser = process.env.GSPUB_PG_REST_USER;
 const postgRestPw = dockerSecret.read('postgrest_password') || process.env.GSPUB_PG_REST_PW;
 
