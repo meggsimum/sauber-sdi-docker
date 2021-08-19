@@ -174,10 +174,23 @@ async function createRasterTimeLayers (rasterMetaInf) {
 
   } else {
     verboseLogging(`Layer "${ws}:${layerName}" already existing.`);
+  }
 
-    //TODO check if TIME already set
+  // check if layer has time dimension enabled
+  let hasTime = false;
+  const coverage = await grc.layers.getCoverage(ws, covStore, layerName);
+  if (coverage && coverage.coverage.metadata && coverage.coverage.metadata.entry &&
+    coverage.coverage.metadata.entry['@key'] === 'time' && (typeof coverage.coverage.metadata.entry.dimensionInfo === 'object')) {
+      const dimInfo = coverage.coverage.metadata.entry.dimensionInfo;
+      if (dimInfo.enabled === true && dimInfo.nearestMatchEnabled === true &&
+          dimInfo.acceptableInterval) {
+          hasTime = true;
+      }
+  }
+
+  if (!hasTime) {
     console.info(`Enabling time for layer "${ws}:${layerName}"`);
-    const timeEnabled = await grc.layers.enableTimeCoverage(ws, covStore, layerName, 'DISCRETE_INTERVAL', 3600000, 'MAXIMUM');
+    const timeEnabled = await grc.layers.enableTimeCoverage(ws, covStore, layerName, 'DISCRETE_INTERVAL', 3600000, 'MAXIMUM', true, false, 'PT30M');
     verboseLogging(`Time dimension  for layer "${ws}:${layerName}" successfully enabled?`, timeEnabled);
   }
 }
