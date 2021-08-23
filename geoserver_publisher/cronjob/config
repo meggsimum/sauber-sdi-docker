@@ -1,6 +1,3 @@
-# only for dev testing, TODO remove
-* * * * * echo "hello cronjob" >> /opt/log_cron_test.txt 2>&1
-
 # execute the node script every minute
 # TODO set to 5 mins for test server
-*/2 * * * * cd /opt && node ./index.js >> /opt/log_raster_publisher.txt 2>&1
+*/2 * * * * cd /opt && node ./index.js
