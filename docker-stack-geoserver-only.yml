@@ -1,0 +1,147 @@
+version: "3.7"
+
+networks:
+    sauber-network:
+        attachable: true
+
+volumes:
+    db_data:
+    geoserver_data:
+    raster_data:
+
+secrets:
+    postgrest_password:
+        file: ./secrets/pgrst_password.txt
+        name: pgrest_password_v3
+    postgrest_jwt_secret:
+        file: ./secrets/pgrst_jwt_secret.txt
+        name: pgrest_sauber_v3
+    geoserver_user:
+        file: ./secrets/geoserver_user.txt
+        name: geoserver_user_v1
+    geoserver_password:
+        file: ./secrets/geoserver_password.txt
+        name: geoserver_password_v2
+    app_password:
+        file: ./secrets/app_password.txt
+        name: app_password_v3
+    sauber_user_password:
+        file: ./secrets/sauber_user_password.txt
+        name: sauber_user_password_v2
+    sauber_manager_password:
+        file: ./secrets/sauber_manager_password.txt
+        name: sauber_manager_password_v2
+    postgres_init_password:
+        file: ./secrets/postgres_init_password.txt
+        name: postgres_init_password_v2
+
+services:
+
+    db:
+        image: "sauberprojekt/db:${TAG:-master}"
+        networks:
+            - sauber-network
+        volumes:
+            - db_data:/var/lib/postgresql/data
+        secrets:
+            - postgrest_jwt_secret
+            - postgrest_password
+            - sauber_manager_password
+            - sauber_user_password
+            - app_password
+            - postgres_init_password
+        environment:
+            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+            - SAUBER_MANAGER_PASSWORD_FILE=/run/secrets/sauber_manager_password
+            - SAUBER_USER_PASSWORD_FILE=/run/secrets/sauber_user_password
+            - APP_PASSWORD_FILE=/run/secrets/app_password
+            - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_init_password
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        ports:
+            - "5440:5432"
+
+    geoserver:
+        image: "meggsimum/geoserver:2.19.1"
+        networks:
+            - sauber-network
+        secrets:
+            - geoserver_user
+            - geoserver_password
+        environment:
+            - USE_CORS=0
+            - USE_VECTOR_TILES=1
+            - EXTRA_JAVA_OPTS=-Xms1g -Xmx2g
+            #- GEOSERVER_CSRF_WHITELIST=sauber-sdi.meggsimum.de
+        volumes:
+            - ./geoserver_mnt/geoserver_data:/opt/geoserver_data/:Z
+            - ./geoserver_mnt/raster_data:/opt/raster_data:Z
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        depends_on:
+            - db
+        ports:
+            - "8082:8080"
+
+    geoserver_init:
+        image: "sauberprojekt/geoserver_init:${TAG:-master}"
+        networks:
+            - sauber-network
+        secrets:
+            - geoserver_user
+            - geoserver_password
+            - app_password
+        environment:
+            - GSINIT_WS=station_data,image_mosaics
+            - GSINIT_STATION_WS=station_data
+            - GSINIT_STATION_DS=station_data
+            - GSINIT_PG_HOST=db
+            - GSINIT_PG_PORT=5432
+            - GSINIT_PG_SCHEMA=station_data
+            - GSINIT_PG_DB=sauber_data
+            - GSINIT_VERBOSE=1
+            #- GSINIT_PROXY_BASE_URL=https://sauber-sdi.meggsimum.de/geoserver
+        deploy:
+            replicas: 1
+            restart_policy:
+                condition: on-failure
+        depends_on:
+            - geoserver
+        command: ["./wait-for.sh", "geoserver:8080", "postgrest:3000", "--", "npm", "start"]
+
+    postgrest:
+        image: "sauberprojekt/postgrest:${TAG:-master}"
+        networks:
+            - sauber-network
+        secrets:
+            - postgrest_jwt_secret
+            - postgrest_password
+            - sauber_manager_password
+        environment:
+            - PGRST_PASSWORD_FILE=/run/secrets/postgrest_password
+            - PGRST_USER=authenticator
+            - PGRST_DB_POOL=5
+            - PGRST_MAX_ROWS=1000
+            - PGRST_JWT_SECRET_FILE=/run/secrets/postgrest_jwt_secret
+            - PGRST_DB_SERVER=db
+            - PGRST_DB_PORT=5432
+            - PGRST_DB_NAME=sauber_data
+            - PGRST_DB_SCHEMA=image_mosaics
+            - PGRST_DB_ANON_ROLE=anon
+        deploy:
+            restart_policy:
+             condition: on-failure
+        depends_on:
+            - db
+        ports:
+            - "3000:3000"
