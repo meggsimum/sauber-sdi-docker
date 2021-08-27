@@ -1,2 +1,2 @@
 # execute the node script every hour at minute 44 (00:44, 01:44, ...)
-44 * * * * node /opt/index.js >> /opt/log_station_layer_creator.txt
+44 * * * * node /opt/index.js
