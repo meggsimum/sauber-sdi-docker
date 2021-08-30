@@ -348,13 +348,6 @@ services:
     #     ports:
     #         - "9998:80"
 
-    wms-time-viewer:
-        image: sauberprojekt/wms-time-viewer:${TAG:-master}
-        networks:
-            - sauber-network
-        ports:
-            - "9997:80"
-
     proxy-webserver:
         image: nginx:stable
         ports:
@@ -369,7 +362,6 @@ services:
             - geoserver
             - um_server
             - um-js-demo
-            - wms-time-viewer
 
     # can be commented in for local debugging, no use in production
     # um-publisher:
