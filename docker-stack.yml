@@ -69,6 +69,7 @@ services:
             - sauber-network
         volumes:
             - db_data:/var/lib/postgresql/data
+            - ./geoserver_mnt/raster_data:/opt/raster_data:ro
             - ./db_backups:/home/backups/database/postgresql
         secrets:
             - postgrest_jwt_secret
