@@ -96,13 +96,6 @@ function perform_backups()
 				mv $FINAL_BACKUP_DIR"$DATABASE".sql.gz.in_progress $FINAL_BACKUP_DIR"$DATABASE".sql.gz
 			fi
 			set +o pipefail
-
-			if (( $(stat -c%s $FINAL_BACKUP_DIR"$DATABASE".sql.gz) > 10000000 )); then
-				echo "Deleting outdated backups"
-				delete_outdated
-			else 
-				echo "[!!WARNING!!] Backup smaller than 10MB. Keeping old Backups. Check backup $FINAL_BACKUP_DIR"$DATABASE".sql.gz" 1>&2
-			fi
 		fi
 
 		if [ $ENABLE_CUSTOM_BACKUPS = "yes" ]
@@ -116,6 +109,16 @@ function perform_backups()
 			fi
 		fi
 
+		# Assume at least 10MB for successful backup
+		MIN_BYTE_COUNT=10000000 
+
+		if [ $(stat -c%s $FINAL_BACKUP_DIR"$DATABASE".sql.gz) > MIN_BYTE_COUNT ]; then
+			echo "Deleting outdated backups"
+			delete_outdated
+		else 
+			echo "[!!WARNING!!] Backup smaller than 10MB. Keeping old Backups. Check backup $FINAL_BACKUP_DIR"$DATABASE".sql.gz" 1>&2
+		fi
+
 	done
 
 	echo -e "\nAll database backups complete!"
@@ -125,7 +128,6 @@ function delete_outdated()
 {
 	# MONTHLY BACKUPS
 
-	echo "DELETE OUTDATED --------------------------------"
 	DAY_OF_MONTH=`date +%d`
 
 	if [ $DAY_OF_MONTH -eq 1 ];
