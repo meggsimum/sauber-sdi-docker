@@ -112,7 +112,7 @@ function perform_backups()
 		# Assume at least 10MB for successful backup
 		MIN_BYTE_COUNT=10000000 
 
-		if [ $(stat -c%s $FINAL_BACKUP_DIR"$DATABASE".sql.gz) > MIN_BYTE_COUNT ]; then
+		if [ $(stat -c%s $FINAL_BACKUP_DIR"$DATABASE".sql.gz) > $MIN_BYTE_COUNT ]; then
 			echo "Deleting outdated backups"
 			delete_outdated
 		else 
