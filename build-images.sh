@@ -56,6 +56,10 @@ docker tag sauberprojekt/um_js_demo:$TAG sauberprojekt/um_js_demo:$DATE_TAG
 docker build --rm -f "geoserver_init/Dockerfile" -t sauberprojekt/geoserver_init:$TAG "geoserver_init"
 docker tag sauberprojekt/geoserver_init:$TAG sauberprojekt/geoserver_init:$DATE_TAG
 
+docker build --rm -f "db_webhooks/Dockerfile" -t sauberprojekt/db_webhooks:$TAG "db_webhooks"
+docker tag sauberprojekt/db_webhooks:$TAG sauberprojekt/db_webhooks:$DATE_TAG
+
+
 if [ $PUSH_TO_HUB -eq 1 ]
 then
   echo "Push images to hub.docker"
@@ -95,4 +99,7 @@ then
 
   docker push sauberprojekt/geoserver_init:$TAG
   docker push sauberprojekt/geoserver_init:$DATE_TAG
+
+  docker push sauberprojekt/db_webhooks:$TAG
+  docker push sauberprojekt/db_webhooks:$DATE_TAG
 fi

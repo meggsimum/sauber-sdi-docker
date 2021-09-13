@@ -1,0 +1,8 @@
+pg-notify-webhook==1.2
+psycopg2-binary
+pyyaml
+requests
+certifi>=2017.4.17
+idna<4,>=2.5
+urllib3<1.27,>=1.21.1
+charset-normalizer~=2.0.0

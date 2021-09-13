@@ -1,0 +1,5 @@
+DSN: postgresql://app:APP_PASSWORD@db:5432/sauber_data
+channels:
+  - slack_alarms
+webhooks: 
+  slack_alarms: SLACK_CHANNEL
