@@ -1,5 +1,7 @@
 \c sauber_data
 
+DROP VIEW IF EXISTS station_data.fv_stations;
+
 CREATE OR REPLACE VIEW station_data.fv_stations (
     idpk,
     station_name,
