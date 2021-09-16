@@ -541,9 +541,6 @@ CREATE OR REPLACE FUNCTION station_data.check_station_last_updated()
  RETURNS void
  LANGUAGE plpgsql
 AS $function$
-DECLARE 
-	meas_outdated json;
-	pred_outdated json;
 
 	BEGIN
 
@@ -555,7 +552,7 @@ DECLARE
 			EXISTS ( 
 				SELECT *  
 				FROM station_data.lut_station ls 
-				WHERE measurement_last_updated < now() - '2 days'::interval
+				WHERE measurement_last_updated < now() - '1 day'::interval
 		) THEN PERFORM  pg_notify('slack_alarms','{"text": "SAUBER stations: Outdated measurement values!"}');
 	
 		END IF; 
@@ -564,30 +561,10 @@ DECLARE
 			EXISTS ( 
 				SELECT *  
 				FROM station_data.lut_station ls 
-				WHERE prediction_last_updated < now() - '2 days'::interval
-		) THEN PERFORM pg_notify('slack_alarms','{"text": "SAUBER stations: Outdated prediction values!"}');
+				WHERE prediction_last_updated < now() - '1 day'::interval
+		) THEN PERFORM  pg_notify('slack_alarms','{"text": "SAUBER stations: Outdated prediction values!"}');
 		END IF; 
 
-	
-		/*
-		 * Dynamic JSON message. Might spam slack though.
-		 */
-	
-		/* 
-		 * Find outdated stations and put into json 
-		 * 
-		SELECT json_build_object('text',json_build_object('SAUBER outdated stations:',jsonb_object_agg(station_code, to_char(measurement_last_updated , 'YYYY-MM-DD HH24:MI')))) INTO meas_outdated
-		FROM station_data.lut_station ls 
-		WHERE measurement_last_updated < now() - '2 days'::interval;
-		
-		SELECT json_build_object('text',json_build_object('SAUBER outdated stations:',jsonb_object_agg(station_code, to_char(prediction_last_updated, 'YYYY-MM-DD HH24:MI')))) INTO pred_oudated
-		FROM station_data.lut_station ls 
-		WHERE prediction_last_updated < now() - '2 days'::interval
-		
-		RAISE NOTICE '%', quote_literal(meas_outdated::json);
-		
-		PERFORM  pg_notify('one',quote_literal(meas_outdated::json));
-		*/ 
 	END;
 $function$
 ;
@@ -600,7 +577,7 @@ GRANT ALL ON FUNCTION station_data.check_station_last_updated() TO postgres;
 -- Add to PG Cron. Update db and nodename.
 
 INSERT INTO cron.job (schedule,command,nodename,nodeport,"database",username,active,jobname) VALUES
-	 ('0 20 * * * ','SELECT station_data.check_station_last_updated()','',5432,'sauber_data','postgres',true,'check if station data outdated ');
+	 ('0 12 * * * ','SELECT station_data.check_station_last_updated()','',5432,'sauber_data','postgres',true,'check if station data is outdated ');
 
 UPDATE cron.job SET nodename = '';
 UPDATE cron.job SET "database" = 'sauber_data';

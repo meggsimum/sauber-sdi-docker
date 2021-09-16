@@ -377,7 +377,7 @@ services:
     #     ports:
     #         - "9990:80"
 
-    db_webhook_notifier:
+    db_webhooks:
         image: "sauberprojekt/db_webhooks:${TAG:-master}"
         # ports:
         # volumes:

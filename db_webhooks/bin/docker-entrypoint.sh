@@ -46,9 +46,5 @@ done
 
 sed -i -e "s/APP_PASSWORD/${APP_PASSWORD}/g" -e "s#SLACK_CHANNEL#${SLACK_CHANNEL_URL}#g" config.yaml # Use § for separator for no.2 command to avoid dealing with / in URL 
 
-# Disable yaml load warning, as loading of config.yaml is hardcoded
-# Cf. https://msg.pyyaml.org/load
-export PYTHONWARNINGS=ignore::pyyaml.YAMLLoadWarning
-
 # Start
 exec pg-notify-webhook 2>&1
