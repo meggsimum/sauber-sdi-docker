@@ -96,7 +96,6 @@ function perform_backups()
 				mv $FINAL_BACKUP_DIR"$DATABASE".sql.gz.in_progress $FINAL_BACKUP_DIR"$DATABASE".sql.gz
 			fi
 			set +o pipefail
-                        
 		fi
 
 		if [ $ENABLE_CUSTOM_BACKUPS = "yes" ]
@@ -110,43 +109,56 @@ function perform_backups()
 			fi
 		fi
 
+		# Assume at least 10MB for successful backup
+		MIN_BYTE_COUNT=10000000 
+
+		if [ $(stat -c%s $FINAL_BACKUP_DIR"$DATABASE".sql.gz) -gt $MIN_BYTE_COUNT ]; then
+			echo "Deleting outdated backups"
+			delete_outdated
+		else 
+			echo "[!!WARNING!!] Backup smaller than 10MB. Keeping old Backups. Check backup $FINAL_BACKUP_DIR"$DATABASE".sql.gz" 1>&2
+		fi
+
 	done
 
 	echo -e "\nAll database backups complete!"
 }
 
-# MONTHLY BACKUPS
+function delete_outdated()
+{
+	# MONTHLY BACKUPS
 
-DAY_OF_MONTH=`date +%d`
+	DAY_OF_MONTH=`date +%d`
 
-if [ $DAY_OF_MONTH -eq 1 ];
-then
-	# Delete all expired monthly directories
-	find $BACKUP_DIR -maxdepth 1 -name "*-monthly" -exec rm -rf '{}' ';'
-	        	
-	perform_backups "-monthly"
-	
-	exit 0;
-fi
+	if [ $DAY_OF_MONTH -eq 1 ];
+	then
+		# Delete all expired monthly directories
+		find $BACKUP_DIR -maxdepth 1 -name "*-monthly" -exec rm -rf '{}' ';'
+					
+		perform_backups "-monthly"
+		
+		exit 0;
+	fi
 
-# WEEKLY BACKUPS
+	# WEEKLY BACKUPS
 
-DAY_OF_WEEK=`date +%u` #1-7 (Monday-Sunday)
-EXPIRED_DAYS=`expr $((($WEEKS_TO_KEEP * 7) + 1))`
+	DAY_OF_WEEK=`date +%u` #1-7 (Monday-Sunday)
+	EXPIRED_DAYS=`expr $((($WEEKS_TO_KEEP * 7) + 1))`
 
-if [ $DAY_OF_WEEK = $DAY_OF_WEEK_TO_KEEP ];
-then
-	# Delete all expired weekly directories
-	find $BACKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
-	        	
-	perform_backups "-weekly"
-	
-	exit 0;
-fi
+	if [ $DAY_OF_WEEK = $DAY_OF_WEEK_TO_KEEP ];
+	then
+		# Delete all expired weekly directories
+		find $BACKUP_DIR -maxdepth 1 -mtime +$EXPIRED_DAYS -name "*-weekly" -exec rm -rf '{}' ';'
+					
+		perform_backups "-weekly"
+		
+		exit 0;
+	fi
 
-# DAILY BACKUPS
+	# DAILY BACKUPS
 
-# Delete daily backups 7 days old or more
-find $BACKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
+	# Delete daily backups 7 days old or more
+	find $BACKUP_DIR -maxdepth 1 -mtime +$DAYS_TO_KEEP -name "*-daily" -exec rm -rf '{}' ';'
+}
 
 perform_backups "-daily"
