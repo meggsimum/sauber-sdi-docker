@@ -12,7 +12,7 @@ AS WITH envelope AS (
          SELECT s.idpk_station AS idpk,
             s.station_name,
             s.station_code,
-            st_envelope(st_buffer(s.wkb_geometry, 100::double precision)) AS env
+            st_envelope(st_buffer(s.wkb_geometry, /*buffer width:*/ 100::double precision)) AS env
            FROM station_data.tab_prediction p
              JOIN station_data.lut_station s ON p.fk_station = s.idpk_station
           GROUP BY s.idpk_station, s.station_name, s.station_code, s.wkb_geometry
