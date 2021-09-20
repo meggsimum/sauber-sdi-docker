@@ -1,12 +1,13 @@
 \c sauber_data
 
 /* 
-Rename old unified column for prediction only 
-Add new column for last measurement update 
+Add new columns for last prediction, measurement update 
 */
 
-ALTER TABLE station_data.lut_station RENAME COLUMN last_updated TO prediction_last_updated;
-ALTER TABLE station_data.lut_station ADD measurement_last_updated timestamp NULL;
+
+ALTER TABLE station_data.lut_station ADD COLUMN IF NOT EXISTS measurement_last_updated timestamp NULL;
+ALTER TABLE station_data.lut_station ADD COLUMN IF NOT EXISTS prediction_last_updated timestamp NULL;
+ALTER TABLE station_data.lut_station DROP COLUMN IF EXISTS last_updated;
 
 /*
  Prediction parser 
