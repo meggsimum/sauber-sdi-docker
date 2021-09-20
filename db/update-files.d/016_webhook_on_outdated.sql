@@ -578,7 +578,8 @@ GRANT ALL ON FUNCTION station_data.check_station_last_updated() TO postgres;
 -- Add to PG Cron. Update db and nodename.
 
 INSERT INTO cron.job (schedule,command,nodename,nodeport,"database",username,active,jobname) VALUES
-	 ('0 12 * * * ','SELECT station_data.check_station_last_updated()','',5432,'sauber_data','postgres',true,'check if station data is outdated ');
+	 ('0 12 * * * ','SELECT station_data.check_station_last_updated()','',5432,'sauber_data','postgres',true,'check if station data is outdated ')
+   ON CONFLICT DO NOTHING;
 
 UPDATE cron.job SET nodename = '';
 UPDATE cron.job SET "database" = 'sauber_data';
