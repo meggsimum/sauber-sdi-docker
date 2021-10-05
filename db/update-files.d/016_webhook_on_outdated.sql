@@ -538,7 +538,7 @@ $function$
 * Create new alert function
 */
 
-CREATE OR REPLACE FUNCTION station_data.check_station_last_updated()
+CREATE OR REPLACE FUNCTION station_data.check_outdated_data()
  RETURNS void
  LANGUAGE plpgsql
 AS $function$
@@ -546,8 +546,10 @@ AS $function$
 	BEGIN
 
 		/*
-		 * Static JSON msg
-		 */
+		* Check lut_station for outdated data
+		* Compare latest update with current timestamp
+		* If difference greater than 1 day, send static JSON msg
+		*/
 		RAISE NOTICE 'Checking station data updates';
 		IF 
 			EXISTS ( 
@@ -555,7 +557,7 @@ AS $function$
 				FROM station_data.lut_station ls 
 				WHERE measurement_last_updated < now() - '1 day'::interval
 		) THEN PERFORM  pg_notify('slack_alarms','{"text": "SAUBER stations: Outdated measurement values!"}');
-	
+
 		END IF; 
 
 		IF 
@@ -566,19 +568,36 @@ AS $function$
 		) THEN PERFORM  pg_notify('slack_alarms','{"text": "SAUBER stations: Outdated prediction values!"}');
 		END IF; 
 
+		/*
+		* Get timestamp of latest raster from source_paylod::json of raster_metadata
+		* Get only latest row via ORDER BY and LIMIT 1
+		* Get time difference between this latest timestamp and current time
+		* If the time difference is greater than 1 day, send alarm
+		* Exclude test messages by only getting rasters with source 'hhi'
+		*/
+		IF (
+			SELECT now() - to_timestamp((source_payload->>'timestamp')::int)
+			FROM image_mosaics.raster_metadata rm
+			WHERE source_payload->>'source' LIKE 'hhi'
+			ORDER BY 1 ASC
+			LIMIT 1
+		) > '1 day'::INTERVAL
+		THEN PERFORM pg_notify('slack_alarms','{"text": "SAUBER rasters outdated!"}');
+	END IF;
+
 	END;
 $function$
 ;
 
 -- Permissions
 
-ALTER FUNCTION station_data.check_station_last_updated() OWNER TO sauber_manager;
-GRANT ALL ON FUNCTION station_data.check_station_last_updated() TO postgres;
+ALTER FUNCTION station_data.check_outdated_data() OWNER TO sauber_manager;
+GRANT ALL ON FUNCTION station_data.check_outdated_data() TO postgres;
 
 -- Add to PG Cron. Update db and nodename.
 
 INSERT INTO cron.job (schedule,command,nodename,nodeport,"database",username,active,jobname) VALUES
-	 ('0 12 * * * ','SELECT station_data.check_station_last_updated()','',5432,'sauber_data','postgres',true,'check if station data is outdated ')
+	 ('0 12 * * * ','SELECT station_data.check_outdated_data()','',5432,'sauber_data','postgres',true,'check if station data is outdated ')
    ON CONFLICT DO NOTHING;
 
 UPDATE cron.job SET nodename = '';

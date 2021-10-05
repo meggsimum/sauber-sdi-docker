@@ -379,10 +379,6 @@ services:
 
     db_webhooks:
         image: "sauberprojekt/db_webhooks:${TAG:-master}"
-        # ports:
-        # volumes:
-        #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-        #     - /etc/letsencrypt:/etc/ssl/certs:ro
         secrets:
             - slack_channel_url
             - app_password
