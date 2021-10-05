@@ -59,6 +59,10 @@ secrets:
     hhi_ip_address:
         file: ./secrets/hhi_ip_address.txt
         name: hhi_ip_addr_v1
+    slack_channel_url:
+        file: ./secrets/slack_channel_url.txt
+        name: slack_channel_url_v1
+
 
 
 services:
@@ -372,3 +376,19 @@ services:
     #         - sauber-network
     #     ports:
     #         - "9990:80"
+
+    db_webhooks:
+        image: "sauberprojekt/db_webhooks:${TAG:-master}"
+        secrets:
+            - slack_channel_url
+            - app_password
+        environment: 
+            - SLACK_CHANNEL_URL_FILE=/run/secrets/slack_channel_url
+            - APP_PASSWORD_FILE=/run/secrets/app_password
+        networks:
+            - sauber-network
+        deploy:
+          restart_policy:
+            condition: on-failure
+        depends_on:
+            - db
