@@ -146,31 +146,6 @@ BEGIN
       coordinates := NULL;
   END IF;
 
-  INSERT INTO
-      station_data.lut_station
-  (
-      station_code,
-      address,
-      region,
-      wkb_geometry,
-      last_updated
-  )
-  VALUES (
-      station_id,
-      'Einsteinufer 37 10587 Berlin'::TEXT, -- Dummy, replace when available,
-      region_id,
-      coordinates,
-      now()
-  ) ON CONFLICT (station_code)
-      DO
-          UPDATE SET prediction_last_updated = now();
-
-    -- Update coordinates if stations coords are empty so far
-    UPDATE
-      station_data.lut_station
-    SET wkb_geometry = coordinates
-    WHERE wkb_geometry IS NULL;
-
 -- INSERT station data
 -- IF EXISTS update time of last update
   INSERT INTO
@@ -180,7 +155,7 @@ BEGIN
     address,
     region,
     wkb_geometry,
-    last_updated
+    prediction_last_updated
   )
   VALUES (
     station_id,
@@ -329,7 +304,7 @@ BEGIN
             ms_abrufzeit := (xpath('.//@AbrufZeiger', i))[1];
 
             -- Build station info, coordinates from DHDN (EPSG 41367) and insert into lookup table
-            INSERT INTO station_data.lut_station (station_code, station_name, eu_id, nuts_id, region, last_updated, wkb_geometry)
+            INSERT INTO station_data.lut_station (station_code, station_name, eu_id, nuts_id, region, measurement_last_updated, wkb_geometry)
                 VALUES ( ms_kurzname, ms_name, ms_eu, ms_nuts, 'BW', now(),
                         st_transform(st_setsrid(st_makepoint(ms_rw, ms_hw),31467), 3035)::public.geometry(POINT,3035)
                        ) 
@@ -456,7 +431,7 @@ BEGIN
      (
       station_name,
       station_code, 
-      last_updated
+      measurement_last_updated
      )
    SELECT 
       station_name,
