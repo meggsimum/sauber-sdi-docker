@@ -21,10 +21,10 @@ AS WITH envelope AS (
             envelope.station_code,
             envelope.station_name,
             concat(
-            round(st_xmin(envelope.env::box3d)),',', 
-            round(st_ymin(envelope.env::box3d)),',',
-            round(st_xmax(envelope.env::box3d)),',',
-            round(st_ymax(envelope.env::box3d))
+            round(st_ymin(envelope.env::box3d)),',', 
+            round(st_xmin(envelope.env::box3d)),',',
+            round(st_ymax(envelope.env::box3d)),',',
+            round(st_xmax(envelope.env::box3d))
             ) AS string
            FROM envelope
         )
@@ -33,7 +33,7 @@ SELECT s.idpk_station AS idpk,
     s.station_code,
     s.eu_id,
     array_to_json(array_agg(DISTINCT c.component_name)) AS pollutants,
-    concat('geoserver/station_data/wms?service=WMS&version=1.1.0&request=GetMap&layers=basemap,fv_stations&bbox=', bbox.string, '&width=250&height=250&srs=EPSG%3A3035&styles=,fv_stations_wmscall&CQL_FILTER=INCLUDE;station_code=', quote_literal(bbox.station_code), '&FORMAT=image/png') AS preview_wms_image,
+    concat('geoserver/station_data/wms?service=WMS&version=1.3.0&request=GetMap&layers=basemap,fv_stations&bbox=', bbox.string, '&width=250&height=250&srs=EPSG%3A3035&styles=,fv_stations_wmscall&CQL_FILTER=INCLUDE;station_code=', quote_literal(bbox.station_code), '&FORMAT=image/png') AS preview_wms_image,
     s.wkb_geometry AS geom
    FROM station_data.tab_prediction p
      JOIN station_data.lut_component c ON p.fk_component = c.idpk_component
