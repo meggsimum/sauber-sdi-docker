@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # build Docker images or not
 DOCKER_BUILD=1

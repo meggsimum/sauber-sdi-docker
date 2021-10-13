@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 PUSH_TO_HUB=0
 
