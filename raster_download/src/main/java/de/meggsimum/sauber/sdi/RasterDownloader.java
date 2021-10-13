@@ -118,7 +118,7 @@
 				InputStream fis = new FileInputStream(secretFileHhiRestUsrLoc );
 				this.hhiRestUser = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load REST user from secrets");
+				throw new FileNotFoundException("Not able to load REST user from secrets");
 			}
 	
 			// load HHI REST password from docker secret or use local dev file as backup
@@ -132,7 +132,7 @@
 				InputStream fis = new FileInputStream(secretFilePwLoc);
 				this.hhiRestPw = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load REST password from secrets");
+				throw new FileNotFoundException("Not able to load REST password from secrets");
 			}
 		
 			// load database password from docker secret or use local dev file as backup
@@ -146,7 +146,7 @@
 				InputStream fis = new FileInputStream(secretFileDbPwLoc);
 				this.dbUserPw = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load DB password from secrets");
+				throw new FileNotFoundException("Not able to load DB password from secrets");
 				
 			}
 			
@@ -160,7 +160,7 @@
 				InputStream fis = new FileInputStream(secretFileIpLoc);
 				this.hhiIP = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load HHI IP address from secrets");
+				throw new FileNotFoundException("Not able to load HHI IP address from secrets");
 			}
 			
 			File secretFileGeoserverUserCtn = new File("/run/secrets/geoserver_user");
@@ -173,7 +173,7 @@
 				InputStream fis = new FileInputStream(secretFileGeoserverUserLoc);
 				this.geoserverUser = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load GeoServer user from secrets");
+				throw new FileNotFoundException("Not able to load GeoServer user from secrets");
 			}
 			
 			File secretFileGeoserverPasswordCtn = new File("/run/secrets/geoserver_password");
@@ -186,7 +186,7 @@
 				InputStream fis = new FileInputStream(secretFileGeoserverPasswordLoc);
 				this.geoserverPassword = IOUtils.toString(fis, "UTF-8");
 			} else {
-				throw new FileNotFoundException("Not able not load GeoServer password from secrets");
+				throw new FileNotFoundException("Not able to load GeoServer password from secrets");
 			}
 			
 		}
@@ -275,7 +275,7 @@
 				SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHH");
 	
 				JSONObject payload = evtData.getJSONObject("payload");
-				String request = payload.getString("url");			
+				String request = payload.getString("url");
 				Long predictionStartTime  = payload.getLong("predictionStartTime"); //get timestamp and convert to format readable by geoserver regex
 				String readableTime = format.format(predictionStartTime *1000);
 	
@@ -291,7 +291,7 @@
 					evtPrefix = "fc";
 				} else if (category.contains("sim")) {
 					evtPrefix = category.replace("-", "_");
-					scenario = payload.getString("scenario");			
+					scenario = evtData.getString("scenario"); // decided to move to outer JSON
 				} else {
 					System.out.println("Error: Could not determine if forecast / simulation.");
 					System.exit(1);
@@ -364,7 +364,7 @@
 			
 			URL url = new URL(request);
 			String authStr = this.hhiRestUser + ":" + this.hhiRestPw;
-		    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
+			String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
 			con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
@@ -415,10 +415,9 @@
 				 * Workaround to publish simulation rasters. 
 				 * See definition for further details.
 				 */
-				if (evtPrefix.contains("sim")) {
-					ws="simulation"; //workspace. Can as well be ommitted for this special case
-					createRasterSimLayer(ws, coverageName, filePathStr);	
-					
+				if (evtPrefix.startsWith("sim")) {
+					createRasterSimLayer(coverageName, filePathStr);
+
 				} else {	
 				
 					try {
@@ -536,37 +535,85 @@
 		 * Workaround to publish simulation rasters with current and simulated land use
 		 * For incoming GeoTIFFs with "type:sim..", create coverage and publish layer 
 		 * Build URL to GS REST API for external (existing, no upload) GeoTIFF
+		 * Workspace simulation is hardcoded for singular use case 
 		 * Use parameter coverageStore for name of CovStore, Layer
 		 * Need to PUT only path to file as body, already downloaded by downloadRaster()
 		 */
 		
-		private void createRasterSimLayer(String workspace, String coverageStore, String filePath) throws IOException {
-								
-			String base_url = "http://geoserver:8080/geoserver/rest/";
+		private void createRasterSimLayer(String coverageStore, String filePath) throws IOException {
+
+			String base_url = "http://geoserver:8080/geoserver/rest/workspaces/simulation/coveragestores/";
+
+			String urlString = base_url+ coverageStore + "/external.geotiff" + "?filename=" + coverageStore + "&coverageName=" + coverageStore;
+
+			URL url = new URL(urlString);
+
+			filePath = "file://" + filePath;
 						
-		    String urlString = base_url + "workspaces/" + workspace + "/coveragestores/" + coverageStore + "/external.geotiff" + "?filename=" + coverageStore + "&coverageName=" + coverageStore;		    	      
-
-		    URL url = new URL(urlString);
-
-		    filePath = "file://" + filePath;
-		    		    
 			String authStr = this.geoserverUser + ":" + this.geoserverPassword;
-
-		    String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
-		    HttpURLConnection con = (HttpURLConnection)url.openConnection();
+			String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
+			HttpURLConnection con = (HttpURLConnection)url.openConnection();
 			con.setRequestMethod("PUT");
-            con.setRequestProperty("Connection", "Keep-Alive");
+			con.setRequestProperty("Connection", "Keep-Alive");
 			con.setDoOutput(true);
 			con.setRequestProperty("Content-Type", "text/plain");
 			con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
 			con.setConnectTimeout(HTTP_TIMEOUT);
 			
-            byte[] out = filePath.getBytes(StandardCharsets.UTF_8);
+			byte[] out = filePath.getBytes(StandardCharsets.UTF_8);
 			
 			OutputStream stream = con.getOutputStream();
 			stream.write(out);
 
-			System.out.println("Sim raster creation " + coverageStore + "ended with HTTP code" + con.getResponseCode() + " " + con.getResponseMessage());
-			con.disconnect();		    
+			Integer respCode = con.getResponseCode(); 
+
+			if (respCode == 201) {
+				System.out.println("HTTP STATUS:" + respCode);
+				System.out.println("Sim raster layer created succesfully. Adjusting name...");
+				adjustSimLayerName(coverageStore);
+				con.disconnect();
+			} else {
+				System.out.println("ERROR: HTTP STATUS:" + respCode + " . Layer not created.");
+				System.exit(1);
+			}
+		}
+
+		 /* 
+		 * Adjust layer title, which is created from filename incl. timestamp  
+		 * PUT small String of xml to new layer via REST API, containing Coverage Store name
+		 */
+		private void adjustSimLayerName(String covStoreName) throws IOException {
+
+			String baseUrl = "http://geoserver:8080/geoserver/rest/workspaces/simulation/coveragestores/";
+			String targetUrl = baseUrl += covStoreName + "/coverages/" + covStoreName + ".xml";
+
+			URL url = new URL(targetUrl);
+
+			String LayerTitle = "<coverage><title>" + covStoreName + "</title></coverage>";
+
+			String authStr = this.geoserverUser + ":" + this.geoserverPassword;
+			String authEncoded = Base64.getEncoder().encodeToString(authStr.getBytes());
+			HttpURLConnection con = (HttpURLConnection)url.openConnection();
+			con.setRequestMethod("PUT");
+			con.setRequestProperty("Connection", "Keep-Alive");
+			con.setDoOutput(true);
+			con.setRequestProperty("Content-Type", "text/xml");
+			con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
+			con.setConnectTimeout(HTTP_TIMEOUT);
+
+			byte[] out = LayerTitle.getBytes(StandardCharsets.UTF_8);
+
+			OutputStream stream = con.getOutputStream();
+			stream.write(out);
+
+			Integer respCode = con.getResponseCode(); 
+
+			if (respCode == 200) {
+				System.out.println("HTTP STATUS:" + respCode);
+				System.out.println("Layer renamed succesfully to "+ covStoreName);
+				con.disconnect();
+			} else {
+				System.out.println("ERROR: HTTP STATUS:" + respCode + " . Layer not renamed.");
+			}	
 		}
 	}
