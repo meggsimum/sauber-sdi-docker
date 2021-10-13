@@ -1,5 +1,12 @@
 \c sauber_data
 
+/* 
+* Drop if existing with regards to possible later changes to the view
+* This would otherwise break the update process on the second, etc. run
+*/
+
+DROP VIEW IF EXISTS station_data.fv_stations;
+
 CREATE OR REPLACE VIEW station_data.fv_stations (
     idpk,
     station_name,
