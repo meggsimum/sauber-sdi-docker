@@ -42,6 +42,14 @@ mkdir \
 echo "... DONE Creating mount directory for GeoServer"
 echo
 
+# create mount directory for database backups
+echo
+echo "Creating mount directory for database backups"
+mkdir \
+  db_backups
+echo "... DONE Creating mount directory for database backups"
+echo
+
 docker stack deploy -c docker-stack.yml sauber-stack
 
 echo 'Waiting 60 seconds for stack to deploy...'
