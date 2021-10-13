@@ -539,7 +539,6 @@
 		 * Use parameter coverageStore for name of CovStore, Layer
 		 * Need to PUT only path to file as body, already downloaded by downloadRaster()
 		 */
-		
 		private void createRasterSimLayer(String coverageStore, String filePath) throws IOException {
 
 			String base_url = "http://geoserver:8080/geoserver/rest/workspaces/simulation/coveragestores/";
@@ -557,7 +556,7 @@
 			con.setRequestProperty("Connection", "Keep-Alive");
 			con.setDoOutput(true);
 			con.setRequestProperty("Content-Type", "text/plain");
-			con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
+			con.setRequestProperty("Authorization", "Basic " + authEncoded);
 			con.setConnectTimeout(HTTP_TIMEOUT);
 			
 			byte[] out = filePath.getBytes(StandardCharsets.UTF_8);
@@ -598,7 +597,7 @@
 			con.setRequestProperty("Connection", "Keep-Alive");
 			con.setDoOutput(true);
 			con.setRequestProperty("Content-Type", "text/xml");
-			con.setRequestProperty  ("Authorization", "Basic " + authEncoded);
+			con.setRequestProperty("Authorization", "Basic " + authEncoded);
 			con.setConnectTimeout(HTTP_TIMEOUT);
 
 			byte[] out = LayerTitle.getBytes(StandardCharsets.UTF_8);
