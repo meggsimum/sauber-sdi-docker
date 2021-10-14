@@ -176,6 +176,9 @@ async function createRasterTimeLayers (rasterMetaInf) {
     verboseLogging(`Layer "${ws}:${layerName}" already existing.`);
   }
 
+  // assign style if necessary
+  await assignStyleIfNecessary(layer, ws, layerName);
+
   // check if layer has time dimension enabled
   let hasTime = false;
   const coverage = await grc.layers.getCoverage(ws, covStore, layerName);
@@ -192,6 +195,74 @@ async function createRasterTimeLayers (rasterMetaInf) {
     console.info(`Enabling time for layer "${ws}:${layerName}"`);
     const timeEnabled = await grc.layers.enableTimeCoverage(ws, covStore, layerName, 'DISCRETE_INTERVAL', 3600000, 'MAXIMUM', true, false, 'PT30M');
     verboseLogging(`Time dimension  for layer "${ws}:${layerName}" successfully enabled?`, timeEnabled);
+  }
+}
+
+/**
+ * Checks if the layer already has the correct style. If not, the correct style will be assigned.
+ *
+ * @param {Object} layer The layer represenation from the GeoServer REST API
+ * @param {String} workspace The workspace
+ * @param {String} layerName The layer name
+ */
+async function assignStyleIfNecessary(layer, workspace, layerName) {
+  const qualifiedLayerName = `${workspace}:${layerName}`;
+
+  // the styles and their workspace must be the same as in the service 'geoserver_init'
+  const workspaceStyle = 'image_mosaics';
+  const allowedStyles = {
+    pm10: 'raster_pm10',
+    no: 'raster_no',
+    no2: 'raster_no2'
+  };
+
+  // check if layer has correct style
+  let layerHasCorrectStyle = false;
+  if (layer && layer.layer && layer.layer.defaultStyle && layer.layer.defaultStyle.name) {
+    // get style name from REST response
+    let responseStyleName = layer.layer.defaultStyle.name;
+    // check if style is inside a workspace like this "my-workpace:my-style"
+    // we require this pattern for our styles
+    const split = responseStyleName.split(':');
+    if (split.length === 2) {
+      // get the actual style name without workspace
+      let currentStyle = split[1];
+      // check if the style name is among the allowed styles
+      const result = Object.values(allowedStyles).find(allowedStyle => {
+        return allowedStyle === currentStyle;
+      });
+      // becomes true if style is allowed
+      layerHasCorrectStyle = !!result;
+    }
+  }
+
+  if (layerHasCorrectStyle) {
+    console.log(`Layer "${qualifiedLayerName}" already has the correct style.`);
+    return;
+  }
+
+  console.log(`Layer "${qualifiedLayerName}" does not have the correct style. Adding a new one ...`);
+
+  let styleName = '';
+  if (layerName.includes('_no_')) {
+    styleName = allowedStyles.no;
+  } else if (layerName.includes('_no2_')) {
+    styleName = allowedStyles.no2;
+  } else if (layerName.includes ('_pm10_')) {
+    styleName = allowedStyles.pm10;
+  } else {
+    console.log(`Could not guess the respective style for layer "${qualifiedLayerName}". ABORT`);
+  }
+
+  if (styleName) {
+    const isDefaultStyle = true;
+    const styleAssigend = await grc.styles.assignStyleToLayer(
+      qualifiedLayerName,
+      styleName,
+      workspaceStyle,
+      isDefaultStyle
+    );
+    console.log(`Style "${styleName}" assigned to layer "${qualifiedLayerName}": ${styleAssigend}`);
   }
 }
 
