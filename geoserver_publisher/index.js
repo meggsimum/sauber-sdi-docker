@@ -164,13 +164,16 @@ async function createRasterTimeLayers (rasterMetaInf) {
 
   verboseLogging(`Checking existence for layer ${ws}:${layerName} in coverage store ${covStore} (native name: ${nativeName})`);
 
-  const layer = await grc.layers.get(covStore);
+  let layer = await grc.layers.get(covStore);
 
   if (!layer) {
     console.info(`Creating layer "${ws}:${layerName}" in store "${covStore}"`);
     // called like this: publishDbRaster (workspace, coverageStore, nativeName, name, title, srs, enabled)
     const layerCreated = await grc.layers.publishDbRaster(ws, covStore, nativeName, layerName, layerTitle, srs, true);
     verboseLogging(`Layer "${ws}:${layerName}" created successfully?`, layerCreated);
+
+    // query layer information for later processing
+    layer = await grc.layers.get(covStore);
 
   } else {
     verboseLogging(`Layer "${ws}:${layerName}" already existing.`);
