@@ -288,16 +288,21 @@
 				
 				
 				if (category.contains("forecast")) {
-					evtPrefix = "fc";
+					evtPrefix = "fc_";
 				} else if (category.contains("sim")) {
+					// build event prefix as e.g. "sim_current_"
 					evtPrefix = category.replace("-", "_");
+					evtPrefix += "_";
+					
+					// build scenario string to insert into store name as "scenario_"
 					scenario = evtData.getString("scenario"); // decided to move to outer JSON
+					scenario += "_";
 				} else {
 					System.out.println("Error: Could not determine if forecast / simulation.");
 					System.exit(1);
 				}
 	
-				fileName = evtPrefix + "_" + fileName;
+				fileName = evtPrefix + fileName;
 				URL requestUrl = new URL(request);
 				InetAddress requestAddress = InetAddress.getByName(requestUrl.getHost());
 				String requestIP = requestAddress.getHostAddress();
@@ -389,7 +394,7 @@
 					evtPrefix = ""; 					
 				}
 				
-				String coverageName = evtPrefix + "_" + evtRegion.toLowerCase() + "_" + scenario + "_" + evtPollutant.toLowerCase();
+				String coverageName = evtPrefix + evtRegion.toLowerCase() + "_" + scenario + evtPollutant.toLowerCase();
 				
 				String outDir = "/opt/raster_data/"+ coverageName + "/";
 	
