@@ -582,7 +582,7 @@
 			}
 		}
 
-		 /* 
+		/**
 		 * Adjust layer title, which is created from filename incl. timestamp  
 		 * PUT small String of xml to new layer via REST API, containing Coverage Store name
 		 */
