@@ -131,7 +131,7 @@ services:
             - geoserver_password
             - app_password
         environment:
-            - GSINIT_WS=station_data,image_mosaics
+            - GSINIT_WS=station_data,image_mosaics,simulation
             - GSINIT_STATION_WS=station_data
             - GSINIT_STATION_DS=station_data
             - GSINIT_PG_HOST=db
