@@ -536,7 +536,7 @@
 				System.exit(1);
 		}
 
-		/*
+		/**
 		 * Workaround to publish simulation rasters with current and simulated land use
 		 * For incoming GeoTIFFs with "type:sim..", create coverage and publish layer 
 		 * Build URL to GS REST API for external (existing, no upload) GeoTIFF
