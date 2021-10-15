@@ -13,7 +13,7 @@ const geoserverUrl = process.env.GSPUB_GS_REST_URL || 'http://geoserver:8080/geo
 const newGeoserverUser = dockerSecret.read('geoserver_user');
 const newGeoserverPw = dockerSecret.read('geoserver_password');
 
-const workspacesList = process.env.GSINIT_WS || 'station_data,image_mosaics';
+const workspacesList = process.env.GSINIT_WS || 'station_data,image_mosaics,simulation';
 const stationWorkspace = process.env.GSINIT_STATION_WS || 'station_data';
 const stationDataStore = process.env.GSINIT_STATION_DS || 'station_data';
 const pgHost = process.env.GSINIT_PG_HOST || 'db';
