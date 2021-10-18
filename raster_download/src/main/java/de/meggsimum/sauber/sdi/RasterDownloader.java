@@ -289,7 +289,7 @@
 				
 				if (category.contains("forecast")) {
 					evtPrefix = "fc_";
-				} else if (category.contains("sim")) {
+				} else if (category.startsWith("sim")) {
 					// build event prefix as e.g. "sim_current_"
 					evtPrefix = category.replace("-", "_");
 					evtPrefix += "_";
