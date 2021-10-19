@@ -217,10 +217,14 @@ services:
             - hhi_rest_user
             - hhi_rest_pw
             - hhi_ip_address
+            - geoserver_user
+            - geoserver_password
         environment:
             - APP_PASSWORD_FILE=/run/secrets/app_password
             - HHI_REST_USER_FILE=/run/secrets/hhi_rest_user
             - HHI_REST_PASSWORD_FILE=/run/secrets/hhi_rest_password
+            - GEOSERVER_USER_FILE=/run/secrets/geoserver_user
+            - GEOSERVER_PASSWORD_FILE=/run/secrets/geoserver_password
             - DB_USER=app
             - UM_CHANNEL=raster_data
             - UM_SERVER=um_server:9000
