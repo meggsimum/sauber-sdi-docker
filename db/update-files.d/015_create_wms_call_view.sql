@@ -1,13 +1,33 @@
 \c sauber_data
 
 /*
-Alter fv_stations to include column for wms calls.
-Need to drop first as adding cols via CREATE OR REPLACE means complaints about how we cant rename columns.
+Make fv_stations a materialized view.
+Caveat: DROP VIEW IF EXISTS throws error if view is materialized and vice versa
+Thus: Add helper function to drop either.
+Add links to wms calls to fv_stations.
 */
 
-DROP VIEW IF EXISTS station_data.fv_stations;
+CREATE OR REPLACE FUNCTION station_data.drop_view(target_schema TEXT, target_view text)
+ RETURNS void
+ LANGUAGE plpgsql
+AS $function$  
+BEGIN
+    IF EXISTS (SELECT matviewname from pg_matviews where schemaname = target_schema and matviewname = target_view) THEN
+        RAISE NOTICE 'Dropped materialized view %', target_view;
+        EXECUTE format('DROP MATERIALIZED VIEW %I.%I', target_schema,target_view); 
+    ELSEIF EXISTS (SELECT viewname from pg_views where schemaname = target_schema and viewname = target_view) THEN
+        RAISE NOTICE 'Dropped view %', target_view;
+        EXECUTE format('DROP VIEW %I.%I', target_schema,target_view); 
+    ELSE RAISE NOTICE 'View not found';
+    END IF;
+END;
+$function$
+;
 
-CREATE OR REPLACE VIEW station_data.fv_stations
+-- Call function 
+SELECT station_data.drop_view('station_data','fv_stations');
+
+CREATE MATERIALIZED VIEW station_data.fv_stations
 AS WITH envelope AS (
          SELECT s.idpk_station AS idpk,
             s.station_name,
