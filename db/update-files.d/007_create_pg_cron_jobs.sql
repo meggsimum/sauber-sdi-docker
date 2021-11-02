@@ -11,12 +11,12 @@ constraint on table cron.job (with unkown results).
 To add queries, alter cols 1 and 2 (cron schedule and query).
 */
 
--- Refresh steation metainfo for station viewer at 11:00 every day
+-- Refresh station_data.fv_station_metadata at 11:00am every day
 INSERT INTO cron.job (schedule,command,nodename,nodeport,"database",username,active,jobname)
-    SELECT  '0 11 * * *','REFRESH MATERIALIZED VIEW station_data.fv_station_metadata','localhost',5432,'postgres','postgres',true,'refresh station metaview' 
+    SELECT  '0 11 * * *','REFRESH MATERIALIZED VIEW station_data.fv_station_metadata','localhost',5432,'sauber_data','postgres',true,'refresh station metaview' 
     WHERE NOT EXISTS (SELECT 1 FROM cron.job WHERE command LIKE 'REFRESH MATERIALIZED VIEW station_data.fv_station_metadata');
 
--- Refresh stations view every day at midnight
+-- Refresh station_data.fv_stations every day at midnight
 INSERT INTO cron.job (schedule,command,nodename,nodeport,"database",username,active,jobname)
-    SELECT  '0 0 * * *','REFRESH MATERIALIZED VIEW station_data.fv_stations','localhost',5432,'postgres','postgres',true,'refresh stations view' 
+    SELECT  '0 0 * * *','REFRESH MATERIALIZED VIEW station_data.fv_stations','localhost',5432,'sauber_data','postgres',true,'refresh stations view' 
     WHERE NOT EXISTS (SELECT 1 FROM cron.job WHERE command LIKE 'REFRESH MATERIALIZED VIEW station_data.fv_stations');

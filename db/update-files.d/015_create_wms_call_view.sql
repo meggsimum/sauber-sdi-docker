@@ -13,11 +13,11 @@ CREATE OR REPLACE FUNCTION station_data.drop_view(target_schema TEXT, target_vie
 AS $function$  
 BEGIN
     IF EXISTS (SELECT matviewname from pg_matviews where schemaname = target_schema and matviewname = target_view) THEN
+        EXECUTE format('DROP MATERIALIZED VIEW %I.%I', target_schema,target_view);
         RAISE NOTICE 'Dropped materialized view %', target_view;
-        EXECUTE format('DROP MATERIALIZED VIEW %I.%I', target_schema,target_view); 
     ELSEIF EXISTS (SELECT viewname from pg_views where schemaname = target_schema and viewname = target_view) THEN
+        EXECUTE format('DROP VIEW %I.%I', target_schema,target_view);
         RAISE NOTICE 'Dropped view %', target_view;
-        EXECUTE format('DROP VIEW %I.%I', target_schema,target_view); 
     ELSE RAISE NOTICE 'View not found';
     END IF;
 END;
