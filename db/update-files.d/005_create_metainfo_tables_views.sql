@@ -38,6 +38,7 @@ AS WITH sel AS (
              JOIN station_data.lut_component co_1 ON tp_1.fk_component = co_1.idpk_component
              JOIN station_data.lut_station s_1 ON tp_1.fk_station = s_1.idpk_station
           WHERE tp_1.date_time >= (now() - '24:00:00'::interval) AND tp_1.date_time <= now()
+          AND tp_1.offset_hrs <= 24 -- Only use latest set of predictions, from less than 24h ago
           GROUP BY tp_1.fk_component, tp_1.fk_station
         )
  SELECT row_number() OVER () AS idpk,
