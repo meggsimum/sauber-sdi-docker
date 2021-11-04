@@ -29,6 +29,14 @@ DROP MATERIALIZED VIEW IF EXISTS station_data.fv_station_metadata;
 
 ALTER TABLE station_data.lut_station ALTER COLUMN region TYPE text USING region::text;
 
+/*
+Create view for station metainfo, incl. a station's proper name, code, measured pollutants, links to station website+image and latest values
+"sel" selection subquery contains latest values
+Merge with station+pollutant lookup table
+Build links to images, according to which organization the station belongs to
+Use max(CASE...) aggregation to avoid more complex subquery / group by code
+*/
+
 CREATE MATERIALIZED VIEW station_data.fv_station_metadata
 AS WITH sel AS (
          SELECT tp_1.fk_component AS comp,
@@ -38,7 +46,7 @@ AS WITH sel AS (
              JOIN station_data.lut_component co_1 ON tp_1.fk_component = co_1.idpk_component
              JOIN station_data.lut_station s_1 ON tp_1.fk_station = s_1.idpk_station
           WHERE tp_1.date_time >= (now() - '24:00:00'::interval) AND tp_1.date_time <= now()
-          AND tp_1.offset_hrs <= 24 -- Only use latest set of predictions, from less than 24h ago
+          AND tp_1.offset_hrs <= 24 -- Only use latest set of prediction values, with less than 24h offset
           GROUP BY tp_1.fk_component, tp_1.fk_station
         )
  SELECT row_number() OVER () AS idpk,
