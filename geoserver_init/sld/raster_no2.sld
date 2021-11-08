@@ -5,7 +5,6 @@
       <sld:FeatureTypeConstraint/>
     </sld:LayerFeatureConstraints>
     <sld:UserStyle>
-      <sld:Name>NO2</sld:Name>
       <sld:FeatureTypeStyle>
         <sld:Rule>
           <sld:RasterSymbolizer>
@@ -15,12 +14,13 @@
               </sld:GrayChannel>
             </sld:ChannelSelection>
             <sld:ColorMap type="ramp">
-              <ColorMapEntry color="#FFFFFF" quantity="0" opacity="0.1" label="noData"/>
-              <ColorMapEntry color="#79bc6a" quantity="1" label="1 µg/m³"/>
-              <ColorMapEntry color="#bbcf4c" quantity="50" label="50 µg/m³"/>
-              <ColorMapEntry color="#eec20b" quantity="100" label="100 µg/m³"/>
-              <ColorMapEntry color="#f29305" quantity="200" label="200 µg/m³"/>
-              <ColorMapEntry color="#960018" quantity="400" label="400 µg/m³"/>
+              <sld:ColorMapEntry color="#FFFFFF" quantity="0" opacity="0.1" label="noData"/>
+              <sld:ColorMapEntry color="#1d63ff" quantity="1" label='0 µg/m³'/>
+              <sld:ColorMapEntry color="#67b0ff" quantity="40" label="40 µg/m³"/>
+              <sld:ColorMapEntry color="#c1e7f1" quantity="80" label="80 µg/m³"/>
+              <sld:ColorMapEntry color="#ffff75" quantity="120" label="120 µg/m³"/>
+              <sld:ColorMapEntry color="#ffba23" quantity="160" label="160 µg/m³"/>
+              <sld:ColorMapEntry color="#ff0700" quantity="200" label="&gt;200 µg/m³"/>
             </sld:ColorMap>
           </sld:RasterSymbolizer>
         </sld:Rule>

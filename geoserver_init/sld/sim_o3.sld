@@ -14,13 +14,12 @@
               </sld:GrayChannel>
             </sld:ChannelSelection>
             <sld:ColorMap type="ramp">
-              <sld:ColorMapEntry color="#FFFFFF" quantity="0" opacity="0.1" label="noData"/>
-              <sld:ColorMapEntry color="#1d63ff" quantity="1" label='0 µg/m³'/>
-              <sld:ColorMapEntry color="#67b0ff" quantity="10" label="10 µg/m³"/>
-              <sld:ColorMapEntry color="#c1e7f1" quantity="20" label="20 µg/m³"/>
-              <sld:ColorMapEntry color="#ffff75" quantity="30" label="30 µg/m³"/>
-              <sld:ColorMapEntry color="#ffba23" quantity="40" label="40 µg/m³"/>
-              <sld:ColorMapEntry color="#ff0700" quantity="50" label="&gt;50 µg/m³"/>
+              <sld:ColorMapEntry color="#FFFFFF" quantity="-1" opacity="0.1" label="noData"/>
+              <sld:ColorMapEntry color="#2b83ba" label="44 µg/m³" quantity="44"/>
+              <sld:ColorMapEntry color="#abdda4" label="49 µg/m³" quantity="49"/>
+              <sld:ColorMapEntry color="#ffffbf" label="49 µg/m³" quantity="49"/>
+              <sld:ColorMapEntry color="#fdae61" label="50 µg/m³" quantity="50"/>
+              <sld:ColorMapEntry color="#d7191c" label="57 µg/m³" quantity="57"/>
             </sld:ColorMap>
           </sld:RasterSymbolizer>
         </sld:Rule>
