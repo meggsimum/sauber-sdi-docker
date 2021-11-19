@@ -14,6 +14,7 @@ Alpine Linux: BSD 2-Clause "Simplified" License. [Link](https://github.com/glide
 Apache Maven: Apache Software License Version 2.0. [Link](https://maven.apache.org/ref/3.0/license.html)  
 Docker engine: Apache Software License Version 2.0. [Link](https://github.com/docker/engine/blob/master/LICENSE)  
 GeoServer: GNU General Public License. [Link](https://docs.geoserver.org/maintain/en/user/introduction/license.html)  
+GeoServer Node Client: BSD 2-Clause "Simplified" License. [Link](https://github.com/meggsimum/geoserver-node-client/blob/master/LICENSE)  
 nginx: BSD 2-Clause "Simplified" License. [Link](http://nginx.org/LICENSE)  
 NodeJS: MIT License. [Link](https://github.com/nodejs/node/blob/master/LICENSE)  
 OpenJDK: (Java Development Kit): GNU General Public License, version 2. [Link](http://openjdk.java.net/legal/gplv2+ce.html)  
