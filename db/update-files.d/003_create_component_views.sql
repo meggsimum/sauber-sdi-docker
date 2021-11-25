@@ -38,7 +38,7 @@ BEGIN
 	     JOIN station_data.lut_component co_1 ON tp.fk_component = co_1.idpk_component
 	     JOIN station_data.lut_station s_1 ON tp.fk_station = s_1.idpk_station
 	  WHERE co_1.component_name = %2$L::text
-	  ORDER BY tp.date_time DESC;           
+	  ORDER BY tp.date_time DESC, tp.offset_hrs ASC;           
       GRANT SELECT ON station_data.agg_prediction_%1$s TO app;
 	', replace(lower(component_name),'-','_'), component_name);
 		
@@ -101,7 +101,7 @@ BEGIN
 			             JOIN station_data.lut_component co_1 ON tp.fk_component = co_1.idpk_component
 			             JOIN station_data.lut_station s_1 ON tp.fk_station = s_1.idpk_station
 			          WHERE s_1.station_code = %3$L AND co_1.component_name = %4$L
-			          ORDER BY tp.date_time DESC
+			          ORDER BY tp.date_time DESC, tp.offset_hrs ASC
 			        )
 			 SELECT row_number() OVER () AS idpk,
 			    sel.fk_component AS component_id,
