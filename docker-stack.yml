@@ -98,7 +98,7 @@ services:
             - "5440:5432"
 
     geoserver:
-        image: "meggsimum/geoserver:2.19.3"
+        image: "meggsimum/geoserver:2.20.1"
         networks:
             - sauber-network
         secrets:
